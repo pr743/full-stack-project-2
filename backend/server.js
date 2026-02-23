@@ -1,0 +1,40 @@
+import express from "express";
+import dotenv from "dotenv";
+import cors from "cors";
+import connectDb from "./config/db.js";
+import authRoutes from "./routes/authRoutes.js";
+import doctorRoutes from "./routes/doctorRoutes.js";
+import patientRoutes from "./routes/patientRoutes.js";
+import appointmentRoutes from "./routes/appointmentRoutes.js";
+import prescriptionRoutes from "./routes/prescriptionRoutes.js";
+import hospitalRoutes from "./routes/hospitalRoutes.js";
+
+dotenv.config();
+
+const app = express();
+
+app.use(express.json());
+
+app.use(cors({
+  origin: process.env.FRONTEND_URL,
+  credentials: true
+}));
+
+connectDb();
+
+app.get("/", (req, res) => {
+  res.send("HMS Backend Running ");
+});
+
+app.use("/api/auth", authRoutes);
+app.use("/api/doctor", doctorRoutes);
+app.use("/api/patient", patientRoutes);
+app.use("/api/appointments", appointmentRoutes);
+app.use("/api/prescriptions", prescriptionRoutes);
+app.use("/api/hospitals", hospitalRoutes);
+
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
