@@ -4,6 +4,7 @@
         "Hostipal",
         "latlng",
         "mapnik",
-        "neighbourhood"
+        "neighbourhood",
+        "VITE"
     ]
 }
