@@ -13,7 +13,7 @@ import {
 const router = express.Router();
 
 
-router.post("/doctors", protect, adminOnly, createDoctor);
+router.post("/", protect, adminOnly, createDoctor);
 
 
 router.get("/dashboard", protect, doctorOnly, getDoctorDashboard);
