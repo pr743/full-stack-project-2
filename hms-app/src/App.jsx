@@ -1,7 +1,6 @@
 import React from "react";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
-import Register from "./Auth/Register";
-import Login from "./Auth/Login";
+import Register from "./auth/Register";
 import { useContext } from "react";
 import AdminDashboard from "./admin/AdminDashboard";
 import { AuthContext } from "./context/AuthContext";
@@ -13,7 +12,7 @@ import PatientDashboard from "./admin/PatientDashboard";
 import AddDoctor from "./admin/AddDoctor";
 import BookAppointment from "./pages/patients/BookAppointment";
 import DoctorAppointment from "./pages/doctor/DoctorAppointment";
-import AdminRegister from "./Auth/AdminRegister";
+import AdminRegister from "./auth/AdminRegister";
 import HospitalsByCity from "./pages/HospitalsByCity";
 import AddHospital from "./admin/AddHospital";
 import CreatePatientProfile from "./admin/CreatePatientProfile";
@@ -24,6 +23,7 @@ import CreatePrescription from "./pages/doctor/CreatePrescription";
 import PatientPrescriptions from "./pages/patients/PatientPrescriptions";
 import PatientHistory from "./pages/patients/PatientHistory";
 import MySavedHospitals from "./pages/MySavedHospitals";
+import Login from "./auth/Login"; 
 function App() {
   const { user } = useContext(AuthContext);
   return (
@@ -36,7 +36,7 @@ function App() {
           }
         />
         <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+        <Route path="/register" element={<Register/>} />
         <Route path="/admin/register" element={<AdminRegister />} />
 
         <Route path="/hospitals" element={<HospitalsByCity />} />

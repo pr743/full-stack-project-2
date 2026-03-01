@@ -31,7 +31,7 @@ function AddDoctor() {
     try {
       setLoading(true);
 
-      await API.post("/admin/doctors", {
+      await API.post("/doctors", {
         ...form,
         experience: Number(form.experience || 0),
         consultationFee: Number(form.consultationFee || 0),
