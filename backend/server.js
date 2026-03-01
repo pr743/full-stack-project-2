@@ -8,6 +8,8 @@ import patientRoutes from "./routes/patientRoutes.js";
 import appointmentRoutes from "./routes/appointmentRoutes.js";
 import prescriptionRoutes from "./routes/prescriptionRoutes.js";
 import hospitalRoutes from "./routes/hospitalRoutes.js";
+import adminRoutes   from "./routes/adminRoutes.js" 
+
 
 
 
@@ -35,6 +37,7 @@ app.use("/api/patient", patientRoutes);
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/prescriptions", prescriptionRoutes);
 app.use("/api/hospitals", hospitalRoutes);
+app.use("/api/admin", adminRoutes);
 
 const PORT = process.env.PORT || 5000;
 
