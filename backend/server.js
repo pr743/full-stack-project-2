@@ -9,6 +9,9 @@ import appointmentRoutes from "./routes/appointmentRoutes.js";
 import prescriptionRoutes from "./routes/prescriptionRoutes.js";
 import hospitalRoutes from "./routes/hospitalRoutes.js";
 
+
+
+
 dotenv.config();
 
 const app = express();
@@ -27,7 +30,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/auth", authRoutes);
-app.use("/api/doctor", doctorRoutes);
+app.use("/api/doctors", doctorRoutes);
 app.use("/api/patient", patientRoutes);
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/prescriptions", prescriptionRoutes);
