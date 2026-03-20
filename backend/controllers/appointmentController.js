@@ -180,13 +180,22 @@ export const bookAppointment = async (req, res) => {
     doctor.currentPatients += 1;
     await doctor.save();
 
+    // return res.status(200).json({
+    //   success: true,
+    //   message: "Appointment booked",
+    //   data: appointment,
+    //   token,
+    //   waitTime,
+    //   queue: token,
+    // });
+
     return res.status(200).json({
       success: true,
       message: "Appointment booked",
       data: appointment,
-      token,
-      waitTime,
-      queue: token,
+      token: appointment.token,
+      queueNumber: appointment.queueNumber,
+      waitTime: appointment.estimatedWaitTime,
     });
   } catch (error) {
     console.error(error);
