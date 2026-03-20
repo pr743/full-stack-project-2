@@ -293,3 +293,57 @@ export const updateDoctorProfile = async (req,res) =>{
     });
   }
 }
+export const nextPatient = async (req, res) => {
+  try {
+    if (req.user.role !== "doctor") {
+      return res.status(403).json({
+        success: false,
+        message: "Doctors only",
+      });
+    }
+
+    const doctor = await Doctor.findOne({ user: req.user._id });
+
+    const next = await Appointment.findOne({
+      doctor: doctor._id,
+      status: "booked",
+    }).sort({ token: 1 });
+
+    if (!next) {
+      return res.json({
+        success: true,
+        message: "No patients in queue",
+      });
+    }
+
+    next.status = "completed";
+    await next.save();
+
+    doctor.currentPatients -= 1;
+    await doctor.save();
+
+    res.json({
+      success: true,
+      message: "Next patient completed",
+      data: next,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false });
+  }
+};
+
+
+
+
+
+export const toggleDoctorStatus = async (req, res) => {
+  const doctor = await Doctor.findOne({ user: req.user._id });
+
+  doctor.isOnline = !doctor.isOnline;
+  await doctor.save();
+
+  res.json({
+    success: true,
+    isOnline: doctor.isOnline,
+  });
+};

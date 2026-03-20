@@ -38,11 +38,17 @@ const appointmentSchema = new mongoose.Schema(
       default: "normal",
     },
 
+    token:Number,
+    queueNumber:Number,
+    estimatedWaitTime:Number,
+
     status: {
       type: String,
       enum: ["booked", "completed", "cancelled"],
       default: "booked",
     },
+
+
   },
   { timestamps: true }
 );

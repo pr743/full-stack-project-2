@@ -56,6 +56,19 @@ const doctorSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "User",
     },
+
+
+
+
+    currentPatients:{
+      type:Number,
+      default:0,
+    },
+
+    isOnline:{
+      type:Boolean,
+      default:true,
+    }
   },
   { timestamps: true }
 );
