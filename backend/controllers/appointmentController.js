@@ -2,6 +2,7 @@ import Appointment from "../models/Appointment.js";
 import Doctor from "../models/Doctor.js";
 import Hospital from "../models/Hospital.js";
 import Patient from "../models/Patient.js";
+import mongoose from "mongoose";
 
 // export const bookAppointment = async (req, res) => {
 //   try {
@@ -87,6 +88,8 @@ import Patient from "../models/Patient.js";
 //   }
 // };
 
+import mongoose from "mongoose";
+
 export const bookAppointment = async (req, res) => {
   try {
     const {
@@ -98,54 +101,45 @@ export const bookAppointment = async (req, res) => {
       slotTime,
     } = req.body;
 
-    const cleanType = appointmentType
-      ? appointmentType.trim().toLowerCase()
-      : "normal";
+    const docId = new mongoose.Types.ObjectId(doctorId);
+    const hospId = new mongoose.Types.ObjectId(hospitalId);
 
-    // 1. EXACT DATE FIX
-    // Use .toISOString() or force the date to a string to avoid timezone shifts
-    const searchDate = new Date(appointmentDate);
-    const start = new Date(searchDate.setUTCHours(0, 0, 0, 0));
-    const end = new Date(searchDate.setUTCHours(23, 59, 59, 999));
+    const start = new Date(appointmentDate);
+    start.setUTCHours(0, 0, 0, 0);
+    const end = new Date(appointmentDate);
+    end.setUTCHours(23, 59, 59, 999);
 
+    const cleanType = appointmentType?.trim().toLowerCase() || "normal";
     let token = 1;
 
-    if (cleanType === "normal") {
-      // 2. THE SEARCH (The "Second Path" Logic)
-      const lastAppts = await Appointment.find({
-        doctor: doctorId,
+    if (cleanType === "Normal") {
+      const lastAppt = await Appointment.findOne({
+        doctor: docId,
         appointmentDate: { $gte: start, $lte: end },
         appointmentType: "normal",
-        status: { $ne: "cancelled" },
-      })
-        .sort({ token: -1 }) // Get the highest token number first
-        .limit(1) // Only give us that one
-        .lean(); // Faster execution
+      }).sort({ token: -1 });
 
-      if (lastAppts.length > 0 && lastAppts[0].token >= 1) {
-        token = lastAppts[0].token + 1;
+      if (lastAppt && lastAppt.token >= 1) {
+        token = lastAppt.token + 1;
       }
     } else {
-      token = 0; // Emergency
+      token = 0;
     }
 
-    // 3. GET DOCTOR DATA (For wait time)
-    const doctor = await Doctor.findById(doctorId);
+    const doctor = await Doctor.findById(docId);
     const waitTime = token * (doctor?.avgConsultTime || 15);
 
-    // 4. FIND PATIENT
     const patient = await Patient.findOne({ user: req.user._id });
     if (!patient)
       return res
         .status(404)
-        .json({ success: false, message: "Patient not found" });
+        .json({ success: false, message: "Patient profile missing" });
 
-    // 5. CREATE
     const newAppointment = await Appointment.create({
       patient: patient._id,
-      doctor: doctorId,
-      hospital: hospitalId,
-      appointmentDate: start, // Store the normalized date
+      doctor: docId,
+      hospital: hospId,
+      appointmentDate: start,
       slotTime,
       reason,
       appointmentType: cleanType,
@@ -155,21 +149,21 @@ export const bookAppointment = async (req, res) => {
       status: "booked",
     });
 
-    // 6. UPDATE DOCTOR
-    await Doctor.findByIdAndUpdate(doctorId, { $inc: { currentPatients: 1 } });
+    await Doctor.findByIdAndUpdate(docId, { $inc: { currentPatients: 1 } });
 
-    // 7. RESPONSE (Flattened)
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
-      message: "Booked!",
-      token: newAppointment.token, // Send this explicitly
+      message: "Appointment booked!",
+      token: newAppointment.token,
       queueNumber: newAppointment.queueNumber,
       waitTime: newAppointment.estimatedWaitTime,
       data: newAppointment,
     });
   } catch (error) {
-    console.error("LOGIC ERROR:", error);
-    res.status(500).json({ success: false, message: error.message });
+    console.error("BOOKING_ERROR:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Server error during booking" });
   }
 };
 
