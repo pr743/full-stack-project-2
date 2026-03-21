@@ -139,16 +139,10 @@ export const bookAppointment = async (req, res) => {
       });
     }
 
-    // ✅ DATE RANGE FIX
     const selectedDate = new Date(appointmentDate);
+    selectedDate.setHours(0, 0, 0, 0);
 
-    const start = new Date(selectedDate);
-    start.setHours(0, 0, 0, 0);
-
-    const end = new Date(selectedDate);
-    end.setHours(23, 59, 59, 999);
-
-    const dateKey = start.toISOString().split("T")[0];
+    const dateKey = selectedDate.toISOString().split("T")[0];
 
     let token = 0;
     let queueNumber = 0;
@@ -157,12 +151,10 @@ export const bookAppointment = async (req, res) => {
 
     if (cleanType === "emergency") {
       finalSlotTime = "EMERGENCY";
-      token = 0; // emergency allowed
     } else {
-      // ✅ SLOT CHECK FIX
       const exists = await Appointment.findOne({
         doctor: doctorId,
-        appointmentDate: { $gte: start, $lte: end },
+        appointmentDate: selectedDate,
         slotTime,
         status: { $ne: "cancelled" },
       });
@@ -174,31 +166,34 @@ export const bookAppointment = async (req, res) => {
         });
       }
 
-      // ✅ ATOMIC COUNTER (NO ZERO BUG)
-      const counter = await TokenCounter.findOneAndUpdate(
-        { doctor: doctorId, date: dateKey },
-        {
-          $inc: { lastToken: 1 },
-          $setOnInsert: { lastToken: 0 }, // ✅ ensures first becomes 1
-        },
-        {
-          new: true,
-          upsert: true,
-        },
-      );
+      let counter = await TokenCounter.findOne({
+        doctor: doctorId,
+        date: dateKey,
+      });
 
-      token = counter.lastToken || 1; // ✅ extra safety
+      if (!counter) {
+        counter = await TokenCounter.create({
+          doctor: doctorId,
+          date: dateKey,
+          lastToken: 1,
+        });
+      } else {
+        counter.lastToken += 1;
+        await counter.save();
+      }
+
+      token = counter.lastToken;
       queueNumber = token;
       waitTime = token * (doctor.avgConsultTime || 15);
 
-      console.log("🔥 FINAL TOKEN:", token);
+      console.log("✅ TOKEN:", token);
     }
 
     const appointment = await Appointment.create({
       patient: patient._id,
       doctor: doctorId,
       hospital: hospitalId,
-      appointmentDate: start,
+      appointmentDate: selectedDate,
       slotTime: finalSlotTime,
       reason,
       appointmentType: cleanType,
