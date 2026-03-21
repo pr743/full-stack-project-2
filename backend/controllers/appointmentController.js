@@ -8,14 +8,14 @@ import Patient from "../models/Patient.js";
 //     if (req.user.role !== "patient") {
 //       return res.status(403).json({
 //         success: false,
-//         message: "patient only",
+//         message: "Patients only",
 //       });
 //     }
 
-//     const { hospitalId, appointmentDate, reason, appointmentType, doctorId } =
+//     const { hospitalId, doctorId, appointmentDate, reason, appointmentType } =
 //       req.body;
 
-//     if (!hospitalId || !appointmentDate || !appointmentType) {
+//     if (!hospitalId || !doctorId || !appointmentDate || !appointmentType) {
 //       return res.status(400).json({
 //         success: false,
 //         message: "Missing required fields",
@@ -27,45 +27,38 @@ import Patient from "../models/Patient.js";
 //     if (!patient) {
 //       return res.status(400).json({
 //         success: false,
-//         message: "Patient profile not found",
+//         message: "Patient not found",
 //       });
 //     }
 
-//     let doctors = await Doctor.find({
+//     const doctor = await Doctor.findOne({
 //       _id: doctorId,
 //       hospital: hospitalId,
 //       isActive: true,
 //       isOnline: true,
 //     });
 
-//     if (doctors.length === 0) {
+//     if (!doctor) {
 //       return res.status(400).json({
 //         success: false,
-//         message: "No doctors available",
+//         message: "Doctor not available",
 //       });
 //     }
 
-//     doctors.sort((a, b) => a.currentPatients - b.currentPatients);
+//     const start = new Date(appointmentDate);
+//     start.setHours(0, 0, 0, 0);
 
-//     const doctor = doctors[0];
+//     const end = new Date(appointmentDate);
+//     end.setHours(23, 59, 59, 999);
 
-//     const startOfDay = new Date(appointmentDate);
-//     startOfDay.setHours(0, 0, 0, 0);
-
-//     const endOfDay = new Date(appointmentDate);
-//     endOfDay.setHours(23, 59, 59, 999);
-
-//     const lastAppointment = await Appointment.findOne({
+//     const last = await Appointment.findOne({
 //       doctor: doctor._id,
-//       appointmentDate: {
-//         $gte: startOfDay,
-//         $lte: endOfDay,
-//       },
+//       appointmentDate: { $gte: start, $lte: end },
 //     }).sort({ token: -1 });
 
-//     const token = lastAppointment ? lastAppointment.token + 1 : 1;
+//     const token = last && last.token > 0 ? last.token + 1 : 1;
 
-//     const waitTime = token * doctor.avgConsultTime;
+//     const waitTime = token * (doctor.avgConsultTime || 15);
 
 //     const appointment = await Appointment.create({
 //       patient: patient._id,
@@ -75,35 +68,28 @@ import Patient from "../models/Patient.js";
 //       slotTime: appointmentType === "emergency" ? "EMERGENCY" : `${token}`,
 //       reason,
 //       appointmentType,
-//       token,
-//       queueNumber: token,
-//       estimatedWaitTime: waitTime,
+//       token: Number(token),
+//       queueNumber: Number(token),
+//       estimatedWaitTime: Number(waitTime),
 //       status: "booked",
 //     });
 
 //     doctor.currentPatients += 1;
 //     await doctor.save();
 
-//     // return res.status(200).json({
-//     //   success: true,
-//     //   message: "Appointment booked",
-//     //   data: appointment,
-//     //   token,
-//     //   waitTime,
-//     //   queue: token,
-//     // });
-
 //     return res.status(200).json({
 //       success: true,
 //       message: "Appointment booked",
-//       data: appointment,
-//       token: appointment.token,
-//       queueNumber: appointment.queueNumber,
-//       waitTime: appointment.estimatedWaitTime,
+//       token,
+//       queueNumber: token,
+//       waitTime,
 //     });
 //   } catch (error) {
 //     console.error(error);
-//     res.status(500).json({ success: false });
+//     res.status(500).json({
+//       success: false,
+//       message: "Server error",
+//     });
 //   }
 // };
 
@@ -127,7 +113,6 @@ export const bookAppointment = async (req, res) => {
     }
 
     const patient = await Patient.findOne({ user: req.user._id });
-
     if (!patient) {
       return res.status(400).json({
         success: false,
@@ -149,32 +134,38 @@ export const bookAppointment = async (req, res) => {
       });
     }
 
-    const start = new Date(appointmentDate);
+    const selectedDate = new Date(appointmentDate);
+
+    const start = new Date(selectedDate);
     start.setHours(0, 0, 0, 0);
 
-    const end = new Date(appointmentDate);
+    const end = new Date(selectedDate);
     end.setHours(23, 59, 59, 999);
 
     const last = await Appointment.findOne({
       doctor: doctor._id,
       appointmentDate: { $gte: start, $lte: end },
+      token: { $gt: 0 },
     }).sort({ token: -1 });
 
-    const token = last && last.token > 0 ? last.token + 1 : 1;
+    const token = last ? last.token + 1 : 1;
 
     const waitTime = token * (doctor.avgConsultTime || 15);
+
+    console.log("LAST TOKEN:", last?.token);
+    console.log("NEW TOKEN:", token);
 
     const appointment = await Appointment.create({
       patient: patient._id,
       doctor: doctor._id,
       hospital: hospitalId,
-      appointmentDate,
+      appointmentDate: new Date(appointmentDate),
       slotTime: appointmentType === "emergency" ? "EMERGENCY" : `${token}`,
       reason,
       appointmentType,
-      token: Number(token),
-      queueNumber: Number(token),
-      estimatedWaitTime: Number(waitTime),
+      token: token,
+      queueNumber: token,
+      estimatedWaitTime: waitTime,
       status: "booked",
     });
 
@@ -183,10 +174,11 @@ export const bookAppointment = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "Appointment booked",
-      token,
+      message: "Appointment booked successfully",
+      token: token,
       queueNumber: token,
-      waitTime,
+      waitTime: waitTime,
+      data: appointment,
     });
   } catch (error) {
     console.error(error);
@@ -196,7 +188,6 @@ export const bookAppointment = async (req, res) => {
     });
   }
 };
-
 console.log(bookAppointment);
 export const getDoctorAppointment = async (req, res) => {
   try {
