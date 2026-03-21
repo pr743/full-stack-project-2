@@ -14,24 +14,19 @@ export const bookAppointment = async (req, res) => {
       slotTime,
     } = req.body;
 
-    if (!hospitalId || !doctorId || !appointmentDate) {
+    if (!hospitalId || !doctorId || !appointmentDate || !appointmentType) {
       return res
         .status(400)
         .json({ success: false, message: "Missing required fields" });
     }
 
     const doctor = await Doctor.findById(doctorId);
-    if (!doctor) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Doctor not found" });
-    }
-
     const patient = await Patient.findOne({ user: req.user._id });
-    if (!patient) {
+
+    if (!doctor || !patient) {
       return res
         .status(404)
-        .json({ success: false, message: "Patient profile not found" });
+        .json({ success: false, message: "Doctor or Patient not found" });
     }
 
     const start = new Date(appointmentDate);
@@ -41,7 +36,9 @@ export const bookAppointment = async (req, res) => {
 
     let token, queueNumber, waitTime, finalSlotTime;
 
-    if (appointmentType.toLowerCase() === "normal") {
+    const cleanType = appointmentType.trim().toLowerCase();
+
+    if (cleanType === "normal") {
       const lastAppt = await Appointment.findOne({
         doctor: doctorId,
         appointmentDate: { $gte: start, $lte: end },
@@ -67,7 +64,7 @@ export const bookAppointment = async (req, res) => {
       appointmentDate: start,
       slotTime: finalSlotTime,
       reason,
-      appointmentType,
+      appointmentType: cleanType, // Save the cleaned version
       token,
       queueNumber,
       estimatedWaitTime: waitTime,
