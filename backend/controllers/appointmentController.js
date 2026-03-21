@@ -112,7 +112,7 @@ export const bookAppointment = async (req, res) => {
     const cleanType = appointmentType?.trim().toLowerCase() || "normal";
     let token = 1;
 
-    if (cleanType === "Normal") {
+    if (cleanType === "normal") {
       const lastAppt = await Appointment.findOne({
         doctor: docId,
         appointmentDate: { $gte: start, $lte: end },
