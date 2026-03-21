@@ -23,7 +23,7 @@ export const bookAppointment = async (req, res) => {
       slotTime,
     } = req.body;
 
-    const cleanType = (appointmentType || "normal").trim().toLowerCase();
+    const cleanType = appointmentType?.trim().toLowerCase() || "normal";
 
     const patient = await Patient.findOne({ user: req.user._id });
     if (!patient) {
