@@ -5,15 +5,119 @@ import TokenCounter from "../models/TokenCounter.js";
 import Patient from "../models/Patient.js";
 import mongoose from "mongoose";
 
+// export const bookAppointment = async (req, res) => {
+//   try {
+//     if (req.user.role !== "patient") {
+//       return res.status(403).json({
+//         success: false,
+//         message: "Patients only",
+//       });
+//     }
+
+//     const {
+//       hospitalId,
+//       doctorId,
+//       appointmentDate,
+//       reason,
+//       appointmentType,
+//       slotTime,
+//     } = req.body;
+
+//     const cleanType = appointmentType?.trim().toLowerCase() || "normal";
+
+//     const patient = await Patient.findOne({ user: req.user._id });
+//     if (!patient) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Patient not found",
+//       });
+//     }
+
+//     const doctor = await Doctor.findById(doctorId);
+//     if (!doctor) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Doctor not available",
+//       });
+//     }
+
+//     const selectedDate = new Date(appointmentDate);
+//     selectedDate.setHours(0, 0, 0, 0);
+
+//     const dateKey = selectedDate.toISOString().split("T")[0];
+
+//     let token = 0;
+//     let queueNumber = 0;
+//     let waitTime = 0;
+//     let finalSlotTime = slotTime || "";
+
+//     if (cleanType === "emergency") {
+//       finalSlotTime = "EMERGENCY";
+//     } else {
+//       const exists = await Appointment.findOne({
+//         doctor: doctorId,
+//         appointmentDate: selectedDate,
+//         slotTime,
+//         status: { $ne: "cancelled" },
+//       });
+
+//       if (exists) {
+//         return res.status(400).json({
+//           success: false,
+//           message: "Slot already booked",
+//         });
+//       }
+
+//       const counter = await TokenCounter.findOneAndUpdate(
+//         { doctor: doctorId, date: dateKey },
+//         { $inc: { lastToken: 1 } },
+//         { new: true, upsert: true },
+//       );
+
+//       token = counter.lastToken;
+//       queueNumber = token;
+//       waitTime = token * (doctor.avgConsultTime || 15);
+
+//       console.log("TOKEN:", token);
+//     }
+
+//     const appointment = await Appointment.create({
+//       patient: patient._id,
+//       doctor: doctorId,
+//       hospital: hospitalId,
+//       appointmentDate: selectedDate,
+//       slotTime: finalSlotTime,
+//       reason,
+//       appointmentType: cleanType,
+//       token,
+//       queueNumber,
+//       estimatedWaitTime: waitTime,
+//       status: "booked",
+//     });
+
+//     await Doctor.findByIdAndUpdate(doctorId, {
+//       $inc: { currentPatients: 1 },
+//     });
+
+//     return res.status(200).json({
+//       success: true,
+//       message: "Appointment booked successfully",
+//       token,
+//       queueNumber,
+//       waitTime,
+//       data: appointment,
+//     });
+//   } catch (error) {
+//     console.error("ERROR:", error);
+//     res.status(500).json({
+//       success: false,
+//       message: "Server error",
+//     });
+//   }
+// };
+
 export const bookAppointment = async (req, res) => {
   try {
-    if (req.user.role !== "patient") {
-      return res.status(403).json({
-        success: false,
-        message: "Patients only",
-      });
-    }
-
     const {
       hospitalId,
       doctorId,
@@ -26,25 +130,25 @@ export const bookAppointment = async (req, res) => {
     const cleanType = appointmentType?.trim().toLowerCase() || "normal";
 
     const patient = await Patient.findOne({ user: req.user._id });
-    if (!patient) {
-      return res.status(400).json({
-        success: false,
-        message: "Patient not found",
-      });
-    }
-
     const doctor = await Doctor.findById(doctorId);
-    if (!doctor) {
+
+    if (!patient || !doctor) {
       return res.status(400).json({
         success: false,
-        message: "Doctor not available",
+        message: "Invalid patient or doctor",
       });
     }
 
+    // ✅ DATE RANGE FIX
     const selectedDate = new Date(appointmentDate);
-    selectedDate.setHours(0, 0, 0, 0);
 
-    const dateKey = selectedDate.toISOString().split("T")[0];
+    const start = new Date(selectedDate);
+    start.setHours(0, 0, 0, 0);
+
+    const end = new Date(selectedDate);
+    end.setHours(23, 59, 59, 999);
+
+    const dateKey = start.toISOString().split("T")[0];
 
     let token = 0;
     let queueNumber = 0;
@@ -53,10 +157,12 @@ export const bookAppointment = async (req, res) => {
 
     if (cleanType === "emergency") {
       finalSlotTime = "EMERGENCY";
+      token = 0; // emergency allowed
     } else {
+      // ✅ SLOT CHECK FIX
       const exists = await Appointment.findOne({
         doctor: doctorId,
-        appointmentDate: selectedDate,
+        appointmentDate: { $gte: start, $lte: end },
         slotTime,
         status: { $ne: "cancelled" },
       });
@@ -68,24 +174,31 @@ export const bookAppointment = async (req, res) => {
         });
       }
 
+      // ✅ ATOMIC COUNTER (NO ZERO BUG)
       const counter = await TokenCounter.findOneAndUpdate(
         { doctor: doctorId, date: dateKey },
-        { $inc: { lastToken: 1 } },
-        { new: true, upsert: true },
+        {
+          $inc: { lastToken: 1 },
+          $setOnInsert: { lastToken: 0 }, // ✅ ensures first becomes 1
+        },
+        {
+          new: true,
+          upsert: true,
+        },
       );
 
-      token = counter.lastToken;
+      token = counter.lastToken || 1; // ✅ extra safety
       queueNumber = token;
       waitTime = token * (doctor.avgConsultTime || 15);
 
-      console.log("TOKEN:", token);
+      console.log("🔥 FINAL TOKEN:", token);
     }
 
     const appointment = await Appointment.create({
       patient: patient._id,
       doctor: doctorId,
       hospital: hospitalId,
-      appointmentDate: selectedDate,
+      appointmentDate: start,
       slotTime: finalSlotTime,
       reason,
       appointmentType: cleanType,
@@ -99,7 +212,7 @@ export const bookAppointment = async (req, res) => {
       $inc: { currentPatients: 1 },
     });
 
-    return res.status(200).json({
+    return res.json({
       success: true,
       message: "Appointment booked successfully",
       token,
@@ -115,7 +228,6 @@ export const bookAppointment = async (req, res) => {
     });
   }
 };
-
 export const getDoctorAppointment = async (req, res) => {
   try {
     if (req.user.role !== "doctor") {
