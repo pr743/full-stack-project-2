@@ -197,6 +197,7 @@ export const bookAppointment = async (req, res) => {
   }
 };
 
+console.log(bookAppointment);
 export const getDoctorAppointment = async (req, res) => {
   try {
     if (req.user.role !== "doctor") {
