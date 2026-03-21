@@ -8,14 +8,25 @@ export const bookAppointment = async (req, res) => {
     if (req.user.role !== "patient") {
       return res.status(403).json({ success: false, message: "Patients only" });
     }
-
-    const { hospitalId, doctorId, appointmentDate, reason, appointmentType } =
-      req.body;
+    const {
+      hospitalId,
+      doctorId,
+      appointmentDate,
+      reason,
+      appointmentType,
+      slotTime,
+    } = req.body;
 
     if (!hospitalId || !doctorId || !appointmentDate || !appointmentType) {
       return res
         .status(400)
         .json({ success: false, message: "Missing required fields" });
+    }
+
+    if (appointmentType === "normal" && !slotTime) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Time slot is required" });
     }
 
     const patient = await Patient.findOne({ user: req.user._id });
@@ -31,6 +42,7 @@ export const bookAppointment = async (req, res) => {
       isActive: true,
       isOnline: true,
     });
+
     if (!doctor) {
       return res
         .status(400)
@@ -39,18 +51,19 @@ export const bookAppointment = async (req, res) => {
 
     const selectedDate = new Date(appointmentDate);
     const start = new Date(selectedDate);
-    start.setHours(0, 0, 0, 0);
+    start.setUTCHours(0, 0, 0, 0);
     const end = new Date(selectedDate);
-    end.setHours(23, 59, 59, 999);
+    end.setUTCHours(23, 59, 59, 999);
 
-    let token, queueNumber, waitTime, slotTime;
+    let token, queueNumber, waitTime, finalSlotTime;
 
     if (appointmentType === "emergency") {
       token = 0;
       queueNumber = 0;
       waitTime = 0;
-      slotTime = "EMERGENCY";
+      finalSlotTime = "EMERGENCY";
     } else {
+      // Find the last token for this doctor on this specific day
       const last = await Appointment.findOne({
         doctor: doctor._id,
         hospital: hospitalId,
@@ -63,17 +76,16 @@ export const bookAppointment = async (req, res) => {
       token = last ? last.token + 1 : 1;
       queueNumber = token;
       waitTime = token * (doctor.avgConsultTime || 15);
-      slotTime = `Token #${token}`;
-    }
 
-    console.log("✅ NEW CODE | TYPE:", appointmentType, "| TOKEN:", token);
+      finalSlotTime = slotTime;
+    }
 
     const appointment = await Appointment.create({
       patient: patient._id,
       doctor: doctor._id,
       hospital: hospitalId,
-      appointmentDate: new Date(appointmentDate),
-      slotTime,
+      appointmentDate: start,
+      slotTime: finalSlotTime,
       reason,
       appointmentType,
       token,
@@ -82,7 +94,7 @@ export const bookAppointment = async (req, res) => {
       status: "booked",
     });
 
-    doctor.currentPatients += 1;
+    doctor.currentPatients = (doctor.currentPatients || 0) + 1;
     await doctor.save();
 
     return res.status(200).json({
@@ -91,15 +103,14 @@ export const bookAppointment = async (req, res) => {
       token,
       queueNumber,
       waitTime,
-      slotTime,
+      slotTime: finalSlotTime,
       data: appointment,
     });
   } catch (error) {
-    console.error(error);
+    console.error("Booking Error:", error);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
-
 export const getDoctorAppointment = async (req, res) => {
   try {
     if (req.user.role !== "doctor") {
