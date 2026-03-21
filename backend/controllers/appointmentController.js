@@ -14,6 +14,12 @@ export const bookAppointment = async (req, res) => {
       slotTime,
     } = req.body;
 
+    if (!hospitalId || !doctorId || !appointmentDate) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing fields" });
+    }
+
     const doctor = await Doctor.findById(doctorId);
     if (!doctor) {
       return res
@@ -28,27 +34,20 @@ export const bookAppointment = async (req, res) => {
     const end = new Date(appointmentDate);
     end.setUTCHours(23, 59, 59, 999);
 
-    let token = 1;
-    let queueNumber = 1;
-    let waitTime = 15;
-    let finalSlotTime = slotTime;
+    let token, queueNumber, waitTime, finalSlotTime;
 
-    // 3. Robust Token Calculation
-    if (String(appointmentType).trim().toLowerCase() === "normal") {
-      const lastAppointment = await Appointment.findOne({
+    if (appointmentType.toLowerCase() === "normal") {
+      const lastAppt = await Appointment.findOne({
         doctor: doctorId,
         appointmentDate: { $gte: start, $lte: end },
         appointmentType: "normal",
         status: { $ne: "cancelled" },
       }).sort({ token: -1 });
 
-      // If an appointment exists, increment. If not, start at 1.
-      token =
-        lastAppointment && lastAppointment.token
-          ? lastAppointment.token + 1
-          : 1;
+      token = lastAppt && lastAppt.token > 0 ? lastAppt.token + 1 : 1;
       queueNumber = token;
       waitTime = token * (doctor.avgConsultTime || 15);
+      finalSlotTime = slotTime;
     } else {
       token = 0;
       queueNumber = 0;
@@ -56,25 +55,25 @@ export const bookAppointment = async (req, res) => {
       finalSlotTime = "EMERGENCY";
     }
 
-    // 4. Create the appointment with the CALCULATED values
     const appointment = await Appointment.create({
       patient: patient._id,
       doctor: doctor._id,
       hospital: hospitalId,
-      appointmentDate: start, // Saves as UTC midnight
+      appointmentDate: start,
       slotTime: finalSlotTime,
       reason,
       appointmentType,
-      token: token, // Explicitly passing calculated token
-      queueNumber: token, // Explicitly passing calculated queue
+      token,
+      queueNumber,
       estimatedWaitTime: waitTime,
       status: "booked",
     });
 
+    await Doctor.findByIdAndUpdate(doctorId, { $inc: { currentPatients: 1 } });
+
     return res.status(200).json({
       success: true,
       message: "Appointment booked successfully",
-      token: appointment.token,
       data: appointment,
     });
   } catch (error) {
