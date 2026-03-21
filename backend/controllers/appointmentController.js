@@ -6,6 +6,13 @@ import mongoose from "mongoose";
 
 export const bookAppointment = async (req, res) => {
   try {
+    if (req.user.role !== "patient") {
+      return res.status(403).json({
+        success: false,
+        message: "Patients only",
+      });
+    }
+
     const {
       hospitalId,
       doctorId,
@@ -15,90 +22,100 @@ export const bookAppointment = async (req, res) => {
       slotTime,
     } = req.body;
 
-    const docId = new mongoose.Types.ObjectId(doctorId);
-    const hospId = new mongoose.Types.ObjectId(hospitalId);
-
-    const cleanType = appointmentType?.trim().toLowerCase() || "normal";
-
-    const doctor = await Doctor.findById(docId);
-
     const patient = await Patient.findOne({ user: req.user._id });
     if (!patient) {
-      return res.status(404).json({
+      return res.status(400).json({
         success: false,
-        message: "Patient profile missing",
+        message: "Patient not found",
       });
     }
 
-    if (cleanType === "normal") {
-      const existing = await Appointment.findOne({
-        doctor: docId,
-        appointmentDate: new Date(appointmentDate),
+    const doctor = await Doctor.findById(doctorId);
+    if (!doctor) {
+      return res.status(400).json({
+        success: false,
+        message: "Doctor not available",
+      });
+    }
+
+    const selectedDate = new Date(appointmentDate);
+
+    const start = new Date(selectedDate);
+    start.setHours(0, 0, 0, 0);
+
+    const end = new Date(selectedDate);
+    end.setHours(23, 59, 59, 999);
+
+    let token = 0;
+    let queueNumber = 0;
+    let waitTime = 0;
+    let finalSlotTime = slotTime || "";
+
+    if (appointmentType === "emergency") {
+      finalSlotTime = "EMERGENCY";
+    } else {
+      // 🚫 Prevent duplicate slot
+      const exists = await Appointment.findOne({
+        doctor: doctorId,
+        appointmentDate: { $gte: start, $lte: end },
         slotTime,
-        status: "booked",
+        status: { $ne: "cancelled" },
       });
 
-      if (existing) {
+      if (exists) {
         return res.status(400).json({
           success: false,
           message: "Slot already booked",
         });
       }
-    }
 
-    let token = 0;
-
-    if (cleanType === "normal") {
-      const start = new Date(appointmentDate);
-      start.setHours(0, 0, 0, 0);
-
-      const end = new Date(appointmentDate);
-      end.setHours(23, 59, 59, 999);
-
-      const lastAppt = await Appointment.findOne({
-        doctor: docId,
+      // ✅ COUNT BASED TOKEN (BEST)
+      const count = await Appointment.countDocuments({
+        doctor: doctorId,
         appointmentDate: { $gte: start, $lte: end },
         appointmentType: "normal",
-      }).sort({ token: -1 });
+        status: { $ne: "cancelled" },
+      });
 
-      token = lastAppt ? lastAppt.token + 1 : 1;
+      token = count + 1;
+      queueNumber = token;
+      waitTime = token * (doctor.avgConsultTime || 15);
     }
 
-    const waitTime =
-      cleanType === "normal" ? token * (doctor?.avgConsultTime || 15) : 0;
-
-    const newAppointment = await Appointment.create({
+    const appointment = await Appointment.create({
       patient: patient._id,
-      doctor: docId,
-      hospital: hospId,
-      appointmentDate: new Date(appointmentDate),
-      slotTime,
+      doctor: doctorId,
+      hospital: hospitalId,
+      appointmentDate: selectedDate,
+      slotTime: finalSlotTime,
       reason,
-      appointmentType: cleanType,
+      appointmentType,
       token,
-      queueNumber: token,
+      queueNumber,
       estimatedWaitTime: waitTime,
       status: "booked",
     });
 
-    await Doctor.findByIdAndUpdate(docId, {
+    await Doctor.findByIdAndUpdate(doctorId, {
       $inc: { currentPatients: 1 },
     });
 
     return res.status(200).json({
       success: true,
-      message: "Appointment booked!",
-      data: newAppointment,
+      message: "Appointment booked successfully",
+      token,
+      queueNumber,
+      waitTime,
+      data: appointment,
     });
   } catch (error) {
-    console.error("BOOKING_ERROR:", error);
+    console.error("ERROR:", error);
     res.status(500).json({
       success: false,
-      message: "Server error during booking",
+      message: "Server error",
     });
   }
 };
-
 export const getDoctorAppointment = async (req, res) => {
   try {
     if (req.user.role !== "doctor") {
