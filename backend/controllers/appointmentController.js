@@ -172,7 +172,7 @@ export const bookAppointment = async (req, res) => {
       slotTime: appointmentType === "emergency" ? "EMERGENCY" : `${token}`,
       reason,
       appointmentType,
-      token,
+      token: token,
       queueNumber: token,
       estimatedWaitTime: waitTime,
       status: "booked",
