@@ -102,59 +102,73 @@ export const bookAppointment = async (req, res) => {
       ? appointmentType.trim().toLowerCase()
       : "normal";
 
-    const dayStart = new Date(appointmentDate);
-    dayStart.setHours(0, 0, 0, 0);
-
-    const dayEnd = new Date(appointmentDate);
-    dayEnd.setHours(23, 59, 59, 999);
+    // 1. EXACT DATE FIX
+    // Use .toISOString() or force the date to a string to avoid timezone shifts
+    const searchDate = new Date(appointmentDate);
+    const start = new Date(searchDate.setUTCHours(0, 0, 0, 0));
+    const end = new Date(searchDate.setUTCHours(23, 59, 59, 999));
 
     let token = 1;
-    let waitTime = 15;
 
     if (cleanType === "normal") {
-      const lastAppt = await Appointment.findOne({
+      // 2. THE SEARCH (The "Second Path" Logic)
+      const lastAppts = await Appointment.find({
         doctor: doctorId,
-        appointmentDate: { $gte: dayStart, $lte: dayEnd },
+        appointmentDate: { $gte: start, $lte: end },
         appointmentType: "normal",
-      }).sort({ token: -1 });
+        status: { $ne: "cancelled" },
+      })
+        .sort({ token: -1 }) // Get the highest token number first
+        .limit(1) // Only give us that one
+        .lean(); // Faster execution
 
-      if (lastAppt && lastAppt.token >= 1) {
-        token = lastAppt.token + 1;
-      } else {
-        token = 1;
+      if (lastAppts.length > 0 && lastAppts[0].token >= 1) {
+        token = lastAppts[0].token + 1;
       }
-
-      const doctor = await Doctor.findById(doctorId);
-      waitTime = token * (doctor?.avgConsultTime || 15);
     } else {
-      token = 0;
-      waitTime = 0;
+      token = 0; // Emergency
     }
 
-    const newAppointment = new Appointment({
-      patient: (await Patient.findOne({ user: req.user._id }))._id,
+    // 3. GET DOCTOR DATA (For wait time)
+    const doctor = await Doctor.findById(doctorId);
+    const waitTime = token * (doctor?.avgConsultTime || 15);
+
+    // 4. FIND PATIENT
+    const patient = await Patient.findOne({ user: req.user._id });
+    if (!patient)
+      return res
+        .status(404)
+        .json({ success: false, message: "Patient not found" });
+
+    // 5. CREATE
+    const newAppointment = await Appointment.create({
+      patient: patient._id,
       doctor: doctorId,
       hospital: hospitalId,
-      appointmentDate: dayStart,
+      appointmentDate: start, // Store the normalized date
       slotTime,
       reason,
       appointmentType: cleanType,
-      token: token,
+      token,
       queueNumber: token,
       estimatedWaitTime: waitTime,
       status: "booked",
     });
 
-    await newAppointment.save();
+    // 6. UPDATE DOCTOR
     await Doctor.findByIdAndUpdate(doctorId, { $inc: { currentPatients: 1 } });
 
+    // 7. RESPONSE (Flattened)
     res.status(200).json({
       success: true,
-      token: newAppointment.token,
+      message: "Booked!",
+      token: newAppointment.token, // Send this explicitly
+      queueNumber: newAppointment.queueNumber,
+      waitTime: newAppointment.estimatedWaitTime,
       data: newAppointment,
     });
   } catch (error) {
-    console.error("TOKEN ERROR:", error);
+    console.error("LOGIC ERROR:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
