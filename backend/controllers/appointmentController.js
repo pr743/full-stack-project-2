@@ -14,7 +14,6 @@ export const bookAppointment = async (req, res) => {
       slotTime,
     } = req.body;
 
-    // 1. Validation
     if (!hospitalId || !doctorId || !appointmentDate) {
       return res
         .status(400)
