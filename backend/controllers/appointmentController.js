@@ -14,10 +14,11 @@ export const bookAppointment = async (req, res) => {
       slotTime,
     } = req.body;
 
+    // 1. Validation
     if (!hospitalId || !doctorId || !appointmentDate) {
       return res
         .status(400)
-        .json({ success: false, message: "Missing fields" });
+        .json({ success: false, message: "Missing required fields" });
     }
 
     const doctor = await Doctor.findById(doctorId);
@@ -28,6 +29,11 @@ export const bookAppointment = async (req, res) => {
     }
 
     const patient = await Patient.findOne({ user: req.user._id });
+    if (!patient) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Patient profile not found" });
+    }
 
     const start = new Date(appointmentDate);
     start.setUTCHours(0, 0, 0, 0);
@@ -74,6 +80,9 @@ export const bookAppointment = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Appointment booked successfully",
+      token: appointment.token,
+      queueNumber: appointment.queueNumber,
+      waitTime: appointment.estimatedWaitTime,
       data: appointment,
     });
   } catch (error) {
