@@ -1,6 +1,7 @@
 import Appointment from "../models/Appointment.js";
 import Doctor from "../models/Doctor.js";
 import Hospital from "../models/Hospital.js";
+import TokenCounter from "../models/TokenCounter.js";
 import Patient from "../models/Patient.js";
 import mongoose from "mongoose";
 
