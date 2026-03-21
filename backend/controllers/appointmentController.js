@@ -53,6 +53,7 @@ export const bookAppointment = async (req, res) => {
     } else {
       const last = await Appointment.findOne({
         doctor: doctor._id,
+        hospital: hospitalId,
         appointmentDate: { $gte: start, $lte: end },
         appointmentType: "normal",
         token: { $gt: 0 },
