@@ -22,6 +22,8 @@ export const bookAppointment = async (req, res) => {
       slotTime,
     } = req.body;
 
+    const cleanType = appointmentType?.trim().toLowerCase();
+
     const patient = await Patient.findOne({ user: req.user._id });
     if (!patient) {
       return res.status(400).json({
@@ -39,25 +41,19 @@ export const bookAppointment = async (req, res) => {
     }
 
     const selectedDate = new Date(appointmentDate);
-
-    const start = new Date(selectedDate);
-    start.setHours(0, 0, 0, 0);
-
-    const end = new Date(selectedDate);
-    end.setHours(23, 59, 59, 999);
+    selectedDate.setHours(0, 0, 0, 0);
 
     let token = 0;
     let queueNumber = 0;
     let waitTime = 0;
     let finalSlotTime = slotTime || "";
 
-    if (appointmentType === "emergency") {
+    if (cleanType === "emergency") {
       finalSlotTime = "EMERGENCY";
     } else {
-      // 🚫 Prevent duplicate slot
       const exists = await Appointment.findOne({
         doctor: doctorId,
-        appointmentDate: { $gte: start, $lte: end },
+        appointmentDate: selectedDate,
         slotTime,
         status: { $ne: "cancelled" },
       });
@@ -69,13 +65,14 @@ export const bookAppointment = async (req, res) => {
         });
       }
 
-      // ✅ COUNT BASED TOKEN (BEST)
       const count = await Appointment.countDocuments({
         doctor: doctorId,
-        appointmentDate: { $gte: start, $lte: end },
+        appointmentDate: selectedDate,
         appointmentType: "normal",
         status: { $ne: "cancelled" },
       });
+
+      console.log("COUNT:", count);
 
       token = count + 1;
       queueNumber = token;
@@ -89,7 +86,7 @@ export const bookAppointment = async (req, res) => {
       appointmentDate: selectedDate,
       slotTime: finalSlotTime,
       reason,
-      appointmentType,
+      appointmentType: cleanType,
       token,
       queueNumber,
       estimatedWaitTime: waitTime,
