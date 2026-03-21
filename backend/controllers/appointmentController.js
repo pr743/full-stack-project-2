@@ -160,7 +160,7 @@ export const bookAppointment = async (req, res) => {
       appointmentDate: { $gte: start, $lte: end },
     }).sort({ token: -1 });
 
-    const token = last ? last.token + 1 : 1;
+    const token = last && last.token > 0 ? last.token + 1 : 1;
 
     const waitTime = token * (doctor.avgConsultTime || 15);
 
@@ -172,9 +172,9 @@ export const bookAppointment = async (req, res) => {
       slotTime: appointmentType === "emergency" ? "EMERGENCY" : `${token}`,
       reason,
       appointmentType,
-      token: token,
-      queueNumber: token,
-      estimatedWaitTime: waitTime,
+      token: Number(token),
+      queueNumber: Number(token),
+      estimatedWaitTime: Number(waitTime),
       status: "booked",
     });
 
