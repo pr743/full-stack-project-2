@@ -4,92 +4,6 @@ import Hospital from "../models/Hospital.js";
 import Patient from "../models/Patient.js";
 import mongoose from "mongoose";
 
-// export const bookAppointment = async (req, res) => {
-//   try {
-//     const {
-//       hospitalId,
-//       doctorId,
-//       appointmentDate,
-//       reason,
-//       appointmentType,
-//       slotTime,
-//     } = req.body;
-
-//     if (!hospitalId || !doctorId || !appointmentDate || !appointmentType) {
-//       return res
-//         .status(400)
-//         .json({ success: false, message: "Missing required fields" });
-//     }
-
-//     const doctor = await Doctor.findById(doctorId);
-//     const patient = await Patient.findOne({ user: req.user._id });
-
-//     if (!doctor || !patient) {
-//       return res
-//         .status(404)
-//         .json({ success: false, message: "Doctor or Patient not found" });
-//     }
-
-//     const start = new Date(appointmentDate);
-//     start.setUTCHours(0, 0, 0, 0);
-//     const end = new Date(appointmentDate);
-//     end.setUTCHours(23, 59, 59, 999);
-
-//     let token, queueNumber, waitTime, finalSlotTime;
-
-//     const cleanType = appointmentType.trim().toLowerCase();
-
-//     if (cleanType === "normal") {
-//       const lastAppt = await Appointment.findOne({
-//         doctor: doctorId,
-//         appointmentDate: { $gte: start, $lte: end },
-//         appointmentType: "normal",
-//         status: { $ne: "cancelled" },
-//       }).sort({ token: -1 });
-
-//       token = lastAppt && lastAppt.token > 0 ? lastAppt.token + 1 : 1;
-//       queueNumber = token;
-//       waitTime = token * (doctor.avgConsultTime || 15);
-//       finalSlotTime = slotTime;
-//     } else {
-//       token = 0;
-//       queueNumber = 0;
-//       waitTime = 0;
-//       finalSlotTime = "EMERGENCY";
-//     }
-
-//     const appointment = await Appointment.create({
-//       patient: patient._id,
-//       doctor: doctor._id,
-//       hospital: hospitalId,
-//       appointmentDate: start,
-//       slotTime: finalSlotTime,
-//       reason,
-//       appointmentType: cleanType, // Save the cleaned version
-//       token,
-//       queueNumber,
-//       estimatedWaitTime: waitTime,
-//       status: "booked",
-//     });
-
-//     await Doctor.findByIdAndUpdate(doctorId, { $inc: { currentPatients: 1 } });
-
-//     return res.status(200).json({
-//       success: true,
-//       message: "Appointment booked successfully",
-//       token: appointment.token,
-//       queueNumber: appointment.queueNumber,
-//       waitTime: appointment.estimatedWaitTime,
-//       data: appointment,
-//     });
-//   } catch (error) {
-//     console.error("Booking Error:", error);
-//     res.status(500).json({ success: false, message: error.message });
-//   }
-// };
-
-import mongoose from "mongoose";
-
 export const bookAppointment = async (req, res) => {
   try {
     const {
@@ -104,42 +18,60 @@ export const bookAppointment = async (req, res) => {
     const docId = new mongoose.Types.ObjectId(doctorId);
     const hospId = new mongoose.Types.ObjectId(hospitalId);
 
-    const start = new Date(appointmentDate);
-    start.setUTCHours(0, 0, 0, 0);
-    const end = new Date(appointmentDate);
-    end.setUTCHours(23, 59, 59, 999);
-
     const cleanType = appointmentType?.trim().toLowerCase() || "normal";
-    let token = 1;
+
+    const doctor = await Doctor.findById(docId);
+
+    const patient = await Patient.findOne({ user: req.user._id });
+    if (!patient) {
+      return res.status(404).json({
+        success: false,
+        message: "Patient profile missing",
+      });
+    }
 
     if (cleanType === "normal") {
+      const existing = await Appointment.findOne({
+        doctor: docId,
+        appointmentDate: new Date(appointmentDate),
+        slotTime,
+        status: "booked",
+      });
+
+      if (existing) {
+        return res.status(400).json({
+          success: false,
+          message: "Slot already booked",
+        });
+      }
+    }
+
+    let token = 0;
+
+    if (cleanType === "normal") {
+      const start = new Date(appointmentDate);
+      start.setHours(0, 0, 0, 0);
+
+      const end = new Date(appointmentDate);
+      end.setHours(23, 59, 59, 999);
+
       const lastAppt = await Appointment.findOne({
         doctor: docId,
         appointmentDate: { $gte: start, $lte: end },
         appointmentType: "normal",
       }).sort({ token: -1 });
 
-      if (lastAppt && lastAppt.token >= 1) {
-        token = lastAppt.token + 1;
-      }
-    } else {
-      token = 0;
+      token = lastAppt ? lastAppt.token + 1 : 1;
     }
 
-    const doctor = await Doctor.findById(docId);
-    const waitTime = token * (doctor?.avgConsultTime || 15);
-
-    const patient = await Patient.findOne({ user: req.user._id });
-    if (!patient)
-      return res
-        .status(404)
-        .json({ success: false, message: "Patient profile missing" });
+    const waitTime =
+      cleanType === "normal" ? token * (doctor?.avgConsultTime || 15) : 0;
 
     const newAppointment = await Appointment.create({
       patient: patient._id,
       doctor: docId,
       hospital: hospId,
-      appointmentDate: start,
+      appointmentDate: new Date(appointmentDate),
       slotTime,
       reason,
       appointmentType: cleanType,
@@ -149,21 +81,21 @@ export const bookAppointment = async (req, res) => {
       status: "booked",
     });
 
-    await Doctor.findByIdAndUpdate(docId, { $inc: { currentPatients: 1 } });
+    await Doctor.findByIdAndUpdate(docId, {
+      $inc: { currentPatients: 1 },
+    });
 
     return res.status(200).json({
       success: true,
       message: "Appointment booked!",
-      token: newAppointment.token,
-      queueNumber: newAppointment.queueNumber,
-      waitTime: newAppointment.estimatedWaitTime,
       data: newAppointment,
     });
   } catch (error) {
     console.error("BOOKING_ERROR:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Server error during booking" });
+    res.status(500).json({
+      success: false,
+      message: "Server error during booking",
+    });
   }
 };
 
