@@ -29,7 +29,7 @@ export const bookAppointment = async (req, res) => {
       return res.status(400).json({ message: "Invalid data" });
     }
 
-    // ✅ DATE RANGE FIX
+    // ✅ DATE RANGE (FIX TIMEZONE BUG)
     const start = new Date(appointmentDate);
     start.setHours(0, 0, 0, 0);
 
@@ -42,8 +42,9 @@ export const bookAppointment = async (req, res) => {
 
     if (type === "emergency") {
       finalSlot = "EMERGENCY";
+      queueNumber = 0;
+      waitTime = 0;
     } else {
-      // ✅ SLOT CHECK
       const exists = await Appointment.findOne({
         doctor: doctorId,
         hospital: hospitalId,
@@ -56,7 +57,6 @@ export const bookAppointment = async (req, res) => {
         return res.status(400).json({ message: "Slot already booked" });
       }
 
-      // ✅ COUNT FIX
       const total = await Appointment.countDocuments({
         doctor: doctorId,
         hospital: hospitalId,
@@ -64,7 +64,7 @@ export const bookAppointment = async (req, res) => {
         status: { $ne: "cancelled" },
       });
 
-      queueNumber = total + 1;
+      queueNumber = Math.max(total + 1, 1);
       waitTime = queueNumber * (doctor.avgConsultTime || 15);
     }
 
@@ -72,7 +72,7 @@ export const bookAppointment = async (req, res) => {
       patient: patient._id,
       doctor: doctorId,
       hospital: hospitalId,
-      appointmentDate: start, // ✅ SAVE NORMALIZED DATE
+      appointmentDate: start,
       slotTime: finalSlot,
       reason,
       appointmentType: type,
