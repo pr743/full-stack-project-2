@@ -41,7 +41,7 @@ function Login() {
       localStorage.setItem("user",JSON.stringify(res.data.user));
 
 
-      showAlert("login successfully");
+      showAlert("login successfully","success");
 
       navigate(`/${res.data.user.role}`);
 
@@ -56,7 +56,7 @@ function Login() {
     setAlert({ msg, type });
     setTimeout(() => {
       setAlert(null);
-    }, 2000);
+    }, 4000);
   };
   return (
     <>

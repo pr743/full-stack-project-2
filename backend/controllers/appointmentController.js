@@ -20,7 +20,7 @@ export const bookAppointment = async (req, res) => {
       slotTime,
     } = req.body;
 
-    const type = (appointmentType || "normal").toLowerCase().trim();
+    const type = (appointmentType || "Normal").toLowerCase().trim();
 
     const patient = await Patient.findOne({ user: req.user._id });
     const doctor = await Doctor.findById(doctorId);
@@ -29,32 +29,37 @@ export const bookAppointment = async (req, res) => {
       return res.status(400).json({ message: "Invalid data" });
     }
 
-    // ✅ DATE RANGE (FIX TIMEZONE BUG)
     const start = new Date(appointmentDate);
     start.setHours(0, 0, 0, 0);
 
     const end = new Date(appointmentDate);
     end.setHours(23, 59, 59, 999);
 
-    let finalSlot = slotTime || "";
+    let finalSlot = "";
     let queueNumber = 0;
     let waitTime = 0;
+
+    // 🚨 EMERGENCY CASE
 
     if (type === "emergency") {
       finalSlot = "EMERGENCY";
       queueNumber = 0;
       waitTime = 0;
     } else {
+      finalSlot = slotTime || "NORMAL";
+
       const exists = await Appointment.findOne({
         doctor: doctorId,
         hospital: hospitalId,
         appointmentDate: { $gte: start, $lte: end },
-        slotTime,
+        slotTime: finalSlot,
         status: { $ne: "cancelled" },
       });
 
       if (exists) {
-        return res.status(400).json({ message: "Slot already booked" });
+        return res.status(400).json({
+          message: "Slot already booked",
+        });
       }
 
       const total = await Appointment.countDocuments({
@@ -64,7 +69,9 @@ export const bookAppointment = async (req, res) => {
         status: { $ne: "cancelled" },
       });
 
-      queueNumber = Math.max(total + 1, 1);
+      console.log("TOTAL:", total);
+
+      queueNumber = total + 1;
       waitTime = queueNumber * (doctor.avgConsultTime || 15);
     }
 
@@ -81,8 +88,11 @@ export const bookAppointment = async (req, res) => {
       status: "booked",
     });
 
+    console.log("FINAL QUEUE:", queueNumber);
+
     res.json({
       success: true,
+      message: "Appointment booked successfully",
       data: appointment,
     });
   } catch (err) {

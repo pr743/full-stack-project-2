@@ -9,6 +9,8 @@ function BookAppointment() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
+  const [result, setResult] = useState(null);
+
   const [form, setForm] = useState({
     hospitalId: "",
     doctorId: "",
@@ -62,8 +64,6 @@ function BookAppointment() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    console.log("Book data:", form);
-
     if (!form.doctorId) {
       setMessage("Please select a doctor");
       return;
@@ -84,24 +84,27 @@ function BookAppointment() {
       return;
     }
 
-    if (form.appointmentType === "normal" && !form.slotTime) {
-      setMessage("Please select time slot");
-      return;
-    }
-
-    if (!form.reason.trim()) {
-      setMessage("Please enter reason");
-      return;
-    }
-
     if (loading) return;
 
     try {
       setLoading(true);
       setMessage("");
 
-      await API.post("/patient/appointment", form);
+      const res = await API.post("/patient/appointment", form);
 
+      console.log("ApI response", res.data);
+
+      // setResult({
+      //   token: res.data.token || 0,
+      //   queueNumber: res.data.queueNumber || 0,
+      //   waitTime: res.data.waitTime || 0,
+      // });
+
+      setResult({
+        queueNumber: res.data.data.queueNumber,
+        waitTime: res.data.data.estimatedWaitTime,
+        type: res.data.data.appointmentType,
+      });
       setMessage("Appointment booked successfully ✅");
 
       setForm({
@@ -120,7 +123,6 @@ function BookAppointment() {
       setLoading(false);
     }
   };
-
   return (
     <>
       <Navbar />
@@ -286,6 +288,30 @@ function BookAppointment() {
             >
               {loading ? "Booking..." : "Book Appointment"}
             </button>
+
+            {result && (
+              <div className="mt-6 bg-green-50 border rounded-2xl p-4">
+                <h2 className="font-bold text-green-700 text-lg mb-2">
+                  ✅ Appointment Confirmed
+                </h2>
+
+                {result.type === "emergency" ? (
+                  <p className="text-red-600 font-bold">
+                    🚨 Emergency - Immediate Attention
+                  </p>
+                ) : (
+                  <>
+                    <p>
+                      📍 Queue Position: <b>{result.queueNumber}</b>
+                    </p>
+
+                    <p>
+                      ⏳ Estimated Wait Time: <b>{result.waitTime} mins</b>
+                    </p>
+                  </>
+                )}
+              </div>
+            )}
           </form>
         </div>
       </div>

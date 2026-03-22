@@ -10,7 +10,7 @@ function DoctorProfile() {
 
   const fetchProfile = async () => {
     try {
-      const res = await API.get("/doctor/profile");
+      const res = await API.get("/doctors/profile");
       setProfile(res.data.data);
     } catch (error) {
       console.error("Error fetching doctor profile:", error);

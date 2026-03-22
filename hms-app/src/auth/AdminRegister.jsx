@@ -39,11 +39,13 @@ function AdminRegister() {
         city: form.city.trim(), 
       });
 
-      login(res.data.admin);
-      localStorage.setItem("email", form.email.trim());
 
-      showAlert("Admin registered successfully");
-      navigate(`/${res.data.admin.role}`);
+      showAlert("Admin registered successfully","success");
+
+      setTimeout(() => {
+        login(res.data.admin);
+        navigate(`/${res.data.admin.role}`);
+      }, 1500);
     } catch {
       showAlert("Registration failed", "error");
     } finally {
@@ -53,15 +55,17 @@ function AdminRegister() {
 
   const showAlert = (msg, type = "info") => {
     setAlert({ msg, type });
-    setTimeout(() => setAlert(null), 2000);
+    setTimeout(() => {
+      setAlert(null);
+    }, 2000);
   };
 
   return (
     <>
       <Navbar />
 
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-tr from-blue-500 to-blue-200 px-4">
-        <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-8">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-tr from-blue-500 to-blue-200 px-4 pt-12 pb-6">
+        <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-6 sm:p-8">
           <div className="text-center mb-6">
             <h1 className="text-3xl font-bold text-blue-600">HMS Register</h1>
             <p className="text-gray-500 text-sm mt-1">
@@ -69,12 +73,17 @@ function AdminRegister() {
             </p>
           </div>
 
-          {alert && (
+        {alert && (
             <div
-              className={`fixed top-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-xl font-semibold
-              ${alert.type === "error" ? "bg-red-400" : "bg-green-400"}`}
+              className={`fixed top-4 left-1/2 -translate-x-1/2 
+              px-4 py-2 rounded-xl text-black font-semibold z-50
+              ${
+                alert.type === "error"
+                  ? "bg-red-400"
+                  : "bg-green-400"
+              }`}
             >
-              {alert.type === "error" ? "⚠️" : "✅"} {alert.msg}
+              {alert.msg}
             </div>
           )}
 

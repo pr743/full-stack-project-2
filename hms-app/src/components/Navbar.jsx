@@ -33,7 +33,6 @@ function Navbar() {
               <Link to="/login">Login</Link>
               <Link to="/register">Patient Register</Link>
               <Link to="/admin/register">Admin Register</Link>
-              <Link to="/hospitals">Find Hospital</Link>
             </>
           )}
 

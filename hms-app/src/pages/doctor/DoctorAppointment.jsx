@@ -17,10 +17,10 @@ function DoctorAppointment() {
 
   const fetchAppointments = async () => {
     try {
-      const res = await API.get("/doctor/appointments");
-      setAppointments(res.data.data);
-    } catch {
-      console.error("Failed to load appointments");
+      const res = await API.get("/appointments/doctor");
+      setAppointments(res.data.data || []);
+    } catch (error) {
+      console.error("Failed to load appointments:", error);
     } finally {
       setLoading(false);
     }
@@ -32,10 +32,13 @@ function DoctorAppointment() {
 
   const markCompleted = async (id) => {
     try {
-      await API.patch(`/doctor/appointments/${id}/complete`);
+      await API.patch(`/appointments/doctor/${id}/status`, {
+        status: "completed",
+      });
+
       fetchAppointments();
-    } catch {
-      console.error("Failed to mark completed");
+    } catch (error) {
+      console.error("Failed to mark completed:", error);
     }
   };
 
@@ -68,9 +71,7 @@ function DoctorAppointment() {
                   : ""
               }`}
             >
-              
               <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
-                
                 
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 font-semibold text-lg">
@@ -82,9 +83,7 @@ function DoctorAppointment() {
                     <div className="flex items-center gap-1">
                       <Calendar size={16} />
                       {appt?.appointmentDate
-                        ? new Date(
-                            appt.appointmentDate
-                          ).toLocaleDateString()
+                        ? new Date(appt.appointmentDate).toLocaleDateString()
                         : "N/A"}
                     </div>
 
@@ -105,9 +104,7 @@ function DoctorAppointment() {
                   </p>
                 </div>
 
-                
                 <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-                  
                   {appt.status === "booked" ? (
                     <button
                       onClick={() => markCompleted(appt._id)}
@@ -123,9 +120,7 @@ function DoctorAppointment() {
 
                   <button
                     onClick={() =>
-                      navigate(
-                        `/doctor/patient/${appt.patient._id}/history`
-                      )
+                      navigate(`/doctor/patient/${appt.patient._id}/history`)
                     }
                     className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm"
                   >

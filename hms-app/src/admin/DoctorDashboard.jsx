@@ -15,7 +15,7 @@ function DoctorDashboard() {
   useEffect(() => {
     const fetchDashboard = async () => {
       try {
-        const res = await API.get("/doctor/dashboard");
+        const res = await API.get("/doctors/dashboard");
         setStats(res.data.data);
       } catch {
         console.error("Doctor dashboard load failed");

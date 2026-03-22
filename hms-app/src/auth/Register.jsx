@@ -47,12 +47,14 @@ function Register() {
      
       login(res.data);
 
-      localStorage.setItem("email", form.email.trim());
 
-      showAlert("Register Successfully ✅");
+      showAlert("Register Successfully ✅","success");
 
       
-      navigate(`/${res.data.user.role}`);
+       setTimeout(() => {
+        login(res.data.admin);
+        navigate(`/${res.data.user.role}`);
+      }, 1500);
     } catch (err) {
       showAlert(
         err.response?.data?.message || "Register Failed ❌",
@@ -66,8 +68,8 @@ function Register() {
   return (
     <>
       <Navbar />
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-tr from-blue-500 to-blue-200 px-4">
-        <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-8">
+     <div className="min-h-screen flex items-center justify-center bg-gradient-to-tr from-blue-500 to-blue-200 px-4 pt-12 pb-6">
+        <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-6 sm:p-8">
           <div className="text-center mb-6">
             <h1 className="text-3xl font-bold text-blue-600">
               Patient Register
