@@ -38,10 +38,10 @@ const appointmentSchema = new mongoose.Schema(
       default: "normal",
     },
 
-    token: {
-      type: Number,
-      default: 0,
-    },
+    // token: {
+    //   type: Number,
+    //   default: 0,
+    // },
 
     queueNumber: {
       type: Number,

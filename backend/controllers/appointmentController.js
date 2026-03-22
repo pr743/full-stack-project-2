@@ -118,6 +118,10 @@ import mongoose from "mongoose";
 
 export const bookAppointment = async (req, res) => {
   try {
+    if (req.user.role !== "patient") {
+      return res.status(403).json({ message: "Patients only" });
+    }
+
     const {
       hospitalId,
       doctorId,
@@ -127,100 +131,67 @@ export const bookAppointment = async (req, res) => {
       slotTime,
     } = req.body;
 
-    const cleanType = appointmentType?.trim().toLowerCase() || "normal";
+    const type = appointmentType?.toLowerCase() || "normal";
 
     const patient = await Patient.findOne({ user: req.user._id });
     const doctor = await Doctor.findById(doctorId);
 
     if (!patient || !doctor) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid patient or doctor",
-      });
+      return res.status(400).json({ message: "Invalid data" });
     }
 
-    const selectedDate = new Date(appointmentDate);
-    selectedDate.setHours(0, 0, 0, 0);
+    const date = new Date(appointmentDate);
+    date.setHours(0, 0, 0, 0);
 
-    const dateKey = selectedDate.toISOString().split("T")[0];
-
-    let token = 0;
+    let finalSlot = slotTime || "";
     let queueNumber = 0;
     let waitTime = 0;
-    let finalSlotTime = slotTime || "";
 
-    if (cleanType === "emergency") {
-      finalSlotTime = "EMERGENCY";
+    if (type === "emergency") {
+      finalSlot = "EMERGENCY";
     } else {
       const exists = await Appointment.findOne({
         doctor: doctorId,
-        appointmentDate: selectedDate,
+        appointmentDate: date,
         slotTime,
         status: { $ne: "cancelled" },
       });
 
       if (exists) {
-        return res.status(400).json({
-          success: false,
-          message: "Slot already booked",
-        });
+        return res.status(400).json({ message: "Slot already booked" });
       }
 
-      let counter = await TokenCounter.findOne({
+      const total = await Appointment.countDocuments({
         doctor: doctorId,
-        date: dateKey,
+        hospital: hospitalId,
+        appointmentDate: date,
+        status: { $ne: "cancelled" },
       });
 
-      if (!counter) {
-        counter = await TokenCounter.create({
-          doctor: doctorId,
-          date: dateKey,
-          lastToken: 1,
-        });
-      } else {
-        counter.lastToken += 1;
-        await counter.save();
-      }
-
-      token = counter.lastToken;
-      queueNumber = token;
-      waitTime = token * (doctor.avgConsultTime || 15);
-
-      console.log("✅ TOKEN:", token);
+      queueNumber = total + 1;
+      waitTime = queueNumber * (doctor.avgConsultTime || 15);
     }
 
     const appointment = await Appointment.create({
       patient: patient._id,
       doctor: doctorId,
       hospital: hospitalId,
-      appointmentDate: selectedDate,
-      slotTime: finalSlotTime,
+      appointmentDate: date,
+      slotTime: finalSlot,
       reason,
-      appointmentType: cleanType,
-      token,
+      appointmentType: type,
       queueNumber,
       estimatedWaitTime: waitTime,
       status: "booked",
     });
 
-    await Doctor.findByIdAndUpdate(doctorId, {
-      $inc: { currentPatients: 1 },
-    });
-
-    return res.json({
+    res.json({
       success: true,
-      message: "Appointment booked successfully",
-      token,
-      queueNumber,
-      waitTime,
       data: appointment,
     });
-  } catch (error) {
-    console.error("ERROR:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error",
-    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
   }
 };
 export const getDoctorAppointment = async (req, res) => {
