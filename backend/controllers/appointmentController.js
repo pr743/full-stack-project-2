@@ -1,7 +1,7 @@
 import Appointment from "../models/Appointment.js";
 import Doctor from "../models/Doctor.js";
 import Hospital from "../models/Hospital.js";
-import TokenCounter from "../models/TokenCounter.js";
+// import TokenCounter from "../models/TokenCounter.js";
 import Patient from "../models/Patient.js";
 import mongoose from "mongoose";
 
@@ -131,7 +131,7 @@ export const bookAppointment = async (req, res) => {
       slotTime,
     } = req.body;
 
-    const type = appointmentType?.toLowerCase() || "normal";
+    const type = (appointmentType || "normal").toLowerCase().trim();
 
     const patient = await Patient.findOne({ user: req.user._id });
     const doctor = await Doctor.findById(doctorId);
@@ -147,11 +147,18 @@ export const bookAppointment = async (req, res) => {
     let queueNumber = 0;
     let waitTime = 0;
 
+    // 🔥 DEBUG LOG
+    console.log("TYPE:", type);
+
     if (type === "emergency") {
       finalSlot = "EMERGENCY";
+      queueNumber = 0;
+      waitTime = 0;
     } else {
+      // ✅ SLOT CHECK
       const exists = await Appointment.findOne({
         doctor: doctorId,
+        hospital: hospitalId, // ✅ IMPORTANT FIX
         appointmentDate: date,
         slotTime,
         status: { $ne: "cancelled" },
@@ -167,6 +174,8 @@ export const bookAppointment = async (req, res) => {
         appointmentDate: date,
         status: { $ne: "cancelled" },
       });
+
+      console.log("TOTAL APPOINTMENTS:", total);
 
       queueNumber = total + 1;
       waitTime = queueNumber * (doctor.avgConsultTime || 15);
@@ -185,12 +194,14 @@ export const bookAppointment = async (req, res) => {
       status: "booked",
     });
 
+    console.log("FINAL QUEUE:", queueNumber);
+
     res.json({
       success: true,
       data: appointment,
     });
   } catch (err) {
-    console.error(err);
+    console.error("ERROR:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
