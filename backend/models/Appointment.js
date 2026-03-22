@@ -38,19 +38,6 @@ const appointmentSchema = new mongoose.Schema(
       default: "normal",
     },
 
-    dateKey: {
-      String,
-    },
-    queueNumber: {
-      type: Number,
-      default: 0,
-    },
-
-    estimatedWaitTime: {
-      type: Number,
-      default: 0,
-    },
-
     status: {
       type: String,
       enum: ["booked", "completed", "cancelled"],
