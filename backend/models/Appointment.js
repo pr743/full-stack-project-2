@@ -38,11 +38,9 @@ const appointmentSchema = new mongoose.Schema(
       default: "normal",
     },
 
-    // token: {
-    //   type: Number,
-    //   default: 0,
-    // },
-
+    dateKey: {
+      String,
+    },
     queueNumber: {
       type: Number,
       default: 0,

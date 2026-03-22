@@ -6,6 +6,11 @@ const tokenCounterSchema = new mongoose.Schema({
     ref: "Doctor",
     required: true,
   },
+  hospital: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Hospital",
+    required: true,
+  },
   date: {
     type: String,
     required: true,
@@ -16,6 +21,6 @@ const tokenCounterSchema = new mongoose.Schema({
   },
 });
 
-tokenCounterSchema.index({ doctor: 1, date: 1 }, { unique: true });
+tokenCounterSchema.index({ doctor: 1, hospital: 1, date: 1 }, { unique: true });
 
 export default mongoose.model("TokenCounter", tokenCounterSchema);
