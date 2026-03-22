@@ -5,10 +5,6 @@ import TokenCounter from "../models/TokenCounter.js";
 import Patient from "../models/Patient.js";
 import mongoose from "mongoose";
 
-import Doctor from "../models/Doctor.js";
-import Patient from "../models/Patient.js";
-import TokenCounter from "../models/TokenCounter.js";
-
 export const bookAppointment = async (req, res) => {
   try {
     if (req.user.role !== "patient") {
