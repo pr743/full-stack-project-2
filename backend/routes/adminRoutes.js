@@ -6,7 +6,8 @@ import {
   getDashboardStats,
   toggleUserStatus,
   deleteDoctor,
-  deletePatient
+  deletePatient,
+  updateDoctor
 
 } from "../controllers/adminController.js";
 
