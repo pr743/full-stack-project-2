@@ -241,3 +241,55 @@ export const deletePatient = async (req, res) => {
     });
   }
 };
+
+
+export const updateDoctor = async (req, res) => {
+  try {
+    const { doctorId } = req.params;
+
+    const doctor = await Doctor.findById(doctorId).populate("user");
+    if (!doctor) {
+      return res.status(404).json({
+        success: false,
+        message: "Doctor not found",
+      });
+    }
+
+    const {
+      name,
+      email,
+      specialization,
+      qualification,
+      experience,
+      consultationFee,
+      avgConsultTime,
+      dailyLimit,
+    } = req.body;
+
+
+    doctor.user.name = name || doctor.user.name;
+    doctor.user.email = email || doctor.user.email;
+    await doctor.user.save();
+
+
+    doctor.specialization = specialization || doctor.specialization;
+    doctor.qualification = qualification || doctor.qualification;
+    doctor.experience = experience || doctor.experience;
+    doctor.consultationFee = consultationFee || doctor.consultationFee;
+    doctor.avgConsultTime = avgConsultTime || doctor.avgConsultTime;
+    doctor.dailyLimit = dailyLimit || doctor.dailyLimit;
+
+    await doctor.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Doctor updated successfully",
+      data: doctor,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Update failed",
+    });
+  }
+};

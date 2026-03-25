@@ -21,6 +21,8 @@ router.get("/appointments", protect, adminOnly, getAllAppointments);
 router.patch("/users/:userId/toggle", protect, adminOnly, toggleUserStatus);
 router.delete("/users/:userId", protect, adminOnly, deleteDoctor);
 router.delete("/patients/:userId", protect, adminOnly, deletePatient);
+router.put("/doctors/:doctorId", protect, adminOnly, updateDoctor);
+
 
 export default router;
 
