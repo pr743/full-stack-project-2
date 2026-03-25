@@ -144,35 +144,6 @@ export const getAllAppointments = async (req, res) => {
   }
 };
 
-// export const toggleUserStatus = async (req, res) => {
-//   try {
-//     const user = await User.findById(req.params.id);
-
-//     if (!user) {
-//       return res.status(404).json({
-//         success: false,
-//         message: "User not found",
-//       });
-//     }
-
-//     user.isActive = !user.isActive;
-//     await user.save();
-
-//     res.status(200).json({
-//       success: true,
-//       message: "User status updated",
-//       // data: user,
-//       isActive: user.isActive,
-//     });
-//   } catch (error) {
-//     res.status(500).json({
-//       success: false,
-//       message: "Failed to update user status",
-//     });
-//   }
-// };
-
-
 
 export const toggleUserStatus = async (req, res) => {
   try {
@@ -233,3 +204,40 @@ export const deleteDoctor = async (req, res) => {
 };
 
 
+export const deletePatient = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const patient = await Patient.findOne({ user: userId });
+
+    if (!patient) {
+      return res.status(404).json({
+        success: false,
+        message: "Patient not found",
+      });
+    }
+
+    const user = await User.findById(userId);
+
+
+    if (user.isActive) {
+      return res.status(400).json({
+        success: false,
+        message: "Only blocked patients can be deleted",
+      });
+    }
+
+    await Patient.deleteOne({ user: userId });
+    await User.findByIdAndDelete(userId);
+
+    res.status(200).json({
+      success: true,
+      message: "Patient deleted successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Delete failed",
+    });
+  }
+};

@@ -5,7 +5,8 @@ import {
   getAllPatients,
   getDashboardStats,
   toggleUserStatus,
-  deleteDoctor
+  deleteDoctor,
+  deletePatient
 
 } from "../controllers/adminController.js";
 
@@ -19,6 +20,7 @@ router.get("/patients", protect, adminOnly, getAllPatients);
 router.get("/appointments", protect, adminOnly, getAllAppointments);
 router.patch("/users/:userId/toggle", protect, adminOnly, toggleUserStatus);
 router.delete("/users/:userId", protect, adminOnly, deleteDoctor);
+router.delete("/patients/:userId", protect, adminOnly, deletePatient);
 
 export default router;
 
