@@ -13,8 +13,8 @@ import {
   updateAppointmentStatus,
   cancelAppointment,
   getPatientHistory,
+  deleteAppointment,
 } from "../controllers/appointmentController.js";
-import { deleteDoctor } from "../controllers/adminController.js";
 
 const router = express.Router();
 
@@ -39,5 +39,8 @@ router.get(
   doctorOnly,
   getPatientHistory
 );
+
+router.delete("/admin/:id", protect, adminOnly, deleteAppointment);
+
 
 export default router;
