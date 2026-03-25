@@ -247,7 +247,8 @@ export const updateDoctor = async (req, res) => {
   try {
     const { doctorId } = req.params;
 
-    const doctor = await Doctor.findById(doctorId).populate("user");
+    const doctor = await Doctor.findById(doctorId);
+
     if (!doctor) {
       return res.status(404).json({
         success: false,
@@ -255,38 +256,30 @@ export const updateDoctor = async (req, res) => {
       });
     }
 
-    const {
-      name,
-      email,
-      specialization,
-      qualification,
-      experience,
-      consultationFee,
-      avgConsultTime,
-      dailyLimit,
-    } = req.body;
 
-
-    doctor.user.name = name || doctor.user.name;
-    doctor.user.email = email || doctor.user.email;
-    await doctor.user.save();
-
-
-    doctor.specialization = specialization || doctor.specialization;
-    doctor.qualification = qualification || doctor.qualification;
-    doctor.experience = experience || doctor.experience;
-    doctor.consultationFee = consultationFee || doctor.consultationFee;
-    doctor.avgConsultTime = avgConsultTime || doctor.avgConsultTime;
-    doctor.dailyLimit = dailyLimit || doctor.dailyLimit;
+    doctor.specialization = req.body.specialization || doctor.specialization;
+    doctor.qualification = req.body.qualification || doctor.qualification;
+    doctor.experience = req.body.experience || doctor.experience;
+    doctor.consultationFee = req.body.consultationFee || doctor.consultationFee;
+    doctor.avgConsultTime = req.body.avgConsultTime || doctor.avgConsultTime;
+    doctor.dailyLimit = req.body.dailyLimit || doctor.dailyLimit;
 
     await doctor.save();
+
+
+    await User.findByIdAndUpdate(doctor.user, {
+      name: req.body.name,
+      email: req.body.email,
+    });
 
     res.status(200).json({
       success: true,
       message: "Doctor updated successfully",
       data: doctor,
     });
+
   } catch (error) {
+    console.error(error);
     res.status(500).json({
       success: false,
       message: "Update failed",
