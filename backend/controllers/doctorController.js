@@ -6,21 +6,21 @@ import bcrypt from "bcrypt";
 
 export const createDoctor = async (req, res) => {
   try {
-    if(!req.user || req.user.role !== "admin"){
+    if (!req.user || req.user.role !== "admin") {
       return res.status(403).json({
-        success:false,
-        message:"Admin only",
+        success: false,
+        message: "Admin only",
       });
- 
+
     }
 
 
     const hospital = await Hospital.findOne({ admin: req.user._id });
 
-    if(!hospital){
+    if (!hospital) {
       return res.status(400).json({
-        success:false,
-        message:"Admin has no hospital Add  hospital first"
+        success: false,
+        message: "Admin has no hospital Add  hospital first"
       })
     }
     const {
@@ -66,9 +66,9 @@ export const createDoctor = async (req, res) => {
       consultationFee,
       avgConsultTime,
       dailyLimit,
-      hospital: hospital._id,   
+      hospital: hospital._id,
       createdBy: req.user._id,
-      isActive:true,
+      isActive: true,
     });
 
     res.status(201).json({
@@ -94,11 +94,11 @@ export const getDoctorDashboard = async (req, res) => {
 
     if (!doctor) {
       return res
-      .status(404)
-    .json({ success: false, message: "Doctor profile not found" });
+        .status(404)
+        .json({ success: false, message: "Doctor profile not found" });
     }
 
-  
+
 
 
 
@@ -107,7 +107,7 @@ export const getDoctorDashboard = async (req, res) => {
       doctor: doctor._id
     });
 
-  
+
 
     const start = new Date();
     start.setHours(0, 0, 0, 0);
@@ -218,73 +218,73 @@ export const completeAppointment = async (req, res) => {
 
 
 
-export  const getDoctorProfile = async (req,res) =>{
+export const getDoctorProfile = async (req, res) => {
   try {
-  const doctor = await Doctor.findOne({user:req.user._id})
-       .populate("user","name email")
-       .populate("hospital","name address");
+    const doctor = await Doctor.findOne({ user: req.user._id })
+      .populate("user", "name email")
+      .populate("hospital", "name address");
 
 
-    if(!doctor){
+    if (!doctor) {
       return res.status(404).json({
-        success:false,
-        message:"Doctor profile not found",
+        success: false,
+        message: "Doctor profile not found",
       });
-    } 
-    
+    }
+
     res.status(200).json({
-      success:true,
-      data:doctor,
+      success: true,
+      data: doctor,
     });
 
   } catch (error) {
-    return res.status(500).json ({
-      success:false,
-      message:"Failed to load doctor profile",
+    return res.status(500).json({
+      success: false,
+      message: "Failed to load doctor profile",
     });
   }
 }
 
 
 
-export const updateDoctorProfile = async (req,res) =>{
+export const updateDoctorProfile = async (req, res) => {
   try {
-  const doctor = await Doctor.findOne({user:req.user._id});  
+    const doctor = await Doctor.findOne({ user: req.user._id });
 
-  if(!doctor){
-    return res.status(404).json({
-      success:false,
-      message:"Doctor profile not found",
-    });
-  }
-
-
-  const{
-    specialization,
-    qualification,
-    experience,
-    consultationFee,
-    avgConsultTime,
-    dailyLimit,
-
-  } = req.body;
+    if (!doctor) {
+      return res.status(404).json({
+        success: false,
+        message: "Doctor profile not found",
+      });
+    }
 
 
-  doctor.specialization = specialization || doctor.specialization;
-  doctor.qualification = qualification || doctor.qualification;
-  doctor.experience = experience || doctor.experience;
-  doctor.consultationFee = consultationFee || doctor.consultationFee;
-  doctor.avgConsultTime = avgConsultTime || doctor.avgConsultTime;
-  doctor.dailyLimit = dailyLimit || doctor.dailyLimit;  
+    const {
+      specialization,
+      qualification,
+      experience,
+      consultationFee,
+      avgConsultTime,
+      dailyLimit,
 
-  await doctor.save();
+    } = req.body;
 
-  res.status(200).json({
-    success:true,
-    message:"Doctor profile updated successfully",
-    data:doctor,
-  })
-    
+
+    doctor.specialization = specialization || doctor.specialization;
+    doctor.qualification = qualification || doctor.qualification;
+    doctor.experience = experience || doctor.experience;
+    doctor.consultationFee = consultationFee || doctor.consultationFee;
+    doctor.avgConsultTime = avgConsultTime || doctor.avgConsultTime;
+    doctor.dailyLimit = dailyLimit || doctor.dailyLimit;
+
+    await doctor.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Doctor profile updated successfully",
+      data: doctor,
+    })
+
   } catch (error) {
     console.error("Error updating doctor profile:", error);
     res.status(500).json({
@@ -293,47 +293,6 @@ export const updateDoctorProfile = async (req,res) =>{
     });
   }
 }
-export const nextPatient = async (req, res) => {
-  try {
-    if (req.user.role !== "doctor") {
-      return res.status(403).json({
-        success: false,
-        message: "Doctors only",
-      });
-    }
-
-    const doctor = await Doctor.findOne({ user: req.user._id });
-
-    const next = await Appointment.findOne({
-      doctor: doctor._id,
-      status: "booked",
-    }).sort({ token: 1 });
-
-    if (!next) {
-      return res.json({
-        success: true,
-        message: "No patients in queue",
-      });
-    }
-
-    next.status = "completed";
-    await next.save();
-
-    doctor.currentPatients -= 1;
-    await doctor.save();
-
-    res.json({
-      success: true,
-      message: "Next patient completed",
-      data: next,
-    });
-  } catch (error) {
-    res.status(500).json({ success: false });
-  }
-};
-
-
-
 
 
 export const toggleDoctorStatus = async (req, res) => {

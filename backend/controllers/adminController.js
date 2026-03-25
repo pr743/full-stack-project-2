@@ -19,7 +19,7 @@ export const getDashboardStats = async (req, res) => {
     }
     const hospitalId = req.hospitalId;
 
-    if (!hospitalId)  {
+    if (!hospitalId) {
       return res.status(200).json({
         success: true,
         needsHospitalSetup,
@@ -72,7 +72,7 @@ export const getDashboardStats = async (req, res) => {
 
 export const getAllDoctors = async (req, res) => {
   try {
-    const doctors = await Doctor.find({hospital:req.hospitalId})
+    const doctors = await Doctor.find({ hospital: req.hospitalId })
       .populate("user", "name email isActive")
       .sort({ createdAt: -1 });
 
@@ -92,12 +92,13 @@ export const getAllDoctors = async (req, res) => {
 export const getAllPatients = async (req, res) => {
 
   try {
-    if(!req.hospitalId){
-      return res.status(400).json({ 
+    if (!req.hospitalId) {
+      return res.status(400).json({
         success: false,
         message: "Hospital not found",
-      })}
-    const patients = await Patient.find({hospital:req.hospitalId})
+      })
+    }
+    const patients = await Patient.find({ hospital: req.hospitalId })
       .populate("user", "name email isActive")
       .sort({ createdAt: -1 });
 
@@ -115,15 +116,15 @@ export const getAllPatients = async (req, res) => {
 };
 
 export const getAllAppointments = async (req, res) => {
- if (
-      !req.hospitalId ||
-      !mongoose.Types.ObjectId.isValid(req.hospitalId)
-    ) {
-      return res.status(200).json({
-        success: true,
-        data: [],
-      });
-    }
+  if (
+    !req.hospitalId ||
+    !mongoose.Types.ObjectId.isValid(req.hospitalId)
+  ) {
+    return res.status(200).json({
+      success: true,
+      data: [],
+    });
+  }
   try {
     const appointments = await Appointment.find()
       .populate("patient", "name email")
@@ -159,10 +160,9 @@ export const toggleUserStatus = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: `User ${
-        user.isActive ? "activated" : "deactivated"
-      } successfully`,
-      data: user,
+      message: "User status updated",
+      // data: user,
+      isActive: user.isActive,
     });
   } catch (error) {
     res.status(500).json({
