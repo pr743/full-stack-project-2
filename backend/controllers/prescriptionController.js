@@ -203,3 +203,44 @@ export const getPatientHistory = async (req, res) => {
     });
   }
 };
+
+
+
+
+export const getDoctorAppointmentsForPrescription = async (req, res) => {
+  try {
+    const doctor = await Doctor.findOne({ user: req.user._id });
+
+    if (!doctor) {
+      return res.status(404).json({
+        success: false,
+        message: "Doctor not found",
+      });
+    }
+
+    const appointments = await Appointment.find({
+      doctor: doctor._id,
+      status: "completed",
+    })
+      .populate({
+        path: "patient",
+        populate: {
+          path: "user",
+          select: "name email",
+        },
+      })
+      .sort({ appointmentDate: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: appointments.length,
+      data: appointments,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch appointments",
+    });
+  }
+};
