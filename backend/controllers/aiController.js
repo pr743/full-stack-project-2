@@ -7,7 +7,7 @@ export const suggestMedicinesAI = async (req, res) => {
         if (!symptom) {
             return res.status(400).json({
                 success: false,
-                message: "Symptom required",
+                data: [],
             });
         }
 
@@ -16,17 +16,18 @@ You are a medical assistant.
 
 Problem: ${symptom}
 
-Return ONLY JSON array like:
+Return ONLY valid JSON array:
+
 [
   {
-    "name": "medicine name",
+    "name": "medicine",
     "dosage": "dose",
     "duration": "days",
     "instructions": "how to take"
   }
 ]
 
-No explanation. Only JSON.
+No text. Only JSON.
 `;
 
         const response = await axios.post(
@@ -45,23 +46,27 @@ No explanation. Only JSON.
 
         let text = response.data.choices[0].message.content;
 
-        let data;
+
+        text = text.replace(/```json/g, "").replace(/```/g, "").trim();
+
+        let data = [];
 
         try {
             data = JSON.parse(text);
-        } catch {
+            if (!Array.isArray(data)) data = [];
+        } catch (err) {
             data = [];
         }
 
-        res.json({
+        return res.json({
             success: true,
             data,
         });
+
     } catch (error) {
-        console.error(error.message);
-        res.status(500).json({
-            success: false,
-            message: "AI failed",
+        return res.json({
+            success: true,
+            data: [],
         });
     }
 };
