@@ -99,10 +99,6 @@ export const getDoctorDashboard = async (req, res) => {
     }
 
 
-
-
-
-
     const appointments = await Appointment.find({
       doctor: doctor._id
     });
@@ -130,9 +126,6 @@ export const getDoctorDashboard = async (req, res) => {
     const patients = await Appointment.distinct("patient", {
       doctor: doctor._id,
     });
-
-
-
 
 
     res.status(200).json({

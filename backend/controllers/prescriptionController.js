@@ -30,6 +30,27 @@ export const createPrescription = async (req, res) => {
       });
     }
 
+
+
+    if (appointment.doctor.toString() !== doctor._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "Unauthorized doctor",
+
+      });
+    }
+
+
+    if (appointment.status !== "completed") {
+      return res.status(400).json({
+        success: false,
+        message: "Only completed appointments allowed",
+
+      });
+    }
+
+
+
     const existing = await Prescription.findOne({ appointment: appointmentId });
     if (existing) {
       return res.status(400).json({
@@ -59,6 +80,36 @@ export const createPrescription = async (req, res) => {
       success: false,
       message: "Failed to create prescription",
     });
+  }
+};
+
+
+
+
+export const getDoctorTodayAppointments = async (req, res) => {
+  try {
+    const doctor = await Doctor.findOne({ user: req.user._id });
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const appointments = await Appointment.find({
+      doctor: doctor._id,
+      appointmentDate: { $gte: today },
+      status: "completed",
+    })
+      .populate({
+        path: "patient",
+        populate: { path: "user", select: "name" },
+      })
+      .sort({ appointmentDate: 1 });
+
+    res.json({
+      success: true,
+      data: appointments,
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Failed" });
   }
 };
 
