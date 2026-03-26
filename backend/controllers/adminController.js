@@ -4,9 +4,9 @@ import Patient from "../models/Patient.js";
 import User from "../models/User.js";
 import mongoose from "mongoose";
 
+
 export const getDashboardStats = async (req, res) => {
   try {
-
     if (
       !req.hospitalId ||
       !mongoose.Types.ObjectId.isValid(req.hospitalId)
@@ -17,37 +17,35 @@ export const getDashboardStats = async (req, res) => {
         data: null,
       });
     }
+
     const hospitalId = req.hospitalId;
 
-    if (!hospitalId) {
-      return res.status(200).json({
-        success: true,
-        needsHospitalSetup,
-        data: {
-          totalDoctors: 0,
-          activeDoctors: 0,
-          totalPatients: 0,
-          totalAppointments: 0,
-        },
-      });
-    }
 
-    if (!hospitalId) {
-      return res.status(400).json({
-        success: false,
-        message: "Hospital  context not found",
-      });
-    }
-    const totalUsers = await User.countDocuments({ hospital: hospitalId });
-    const totalDoctors = await Doctor.countDocuments({ hospital: hospitalId });
-    const activeDoctors = await User.countDocuments({
+
+    const totalDoctors = await Doctor.countDocuments({
       hospital: hospitalId,
-      role: "doctor",
-      isActive: true,
     });
+
+    const activeDoctors = await Doctor.countDocuments({
+      hospital: hospitalId,
+    }).populate({
+      path: "user",
+      match: { isActive: true },
+    });
+
+
+    const activeDoctorsList = await Doctor.find({
+      hospital: hospitalId,
+    }).populate("user");
+
+    const activeDoctorsCount = activeDoctorsList.filter(
+      (doc) => doc.user?.isActive
+    ).length;
+
     const totalPatients = await Patient.countDocuments({
       hospital: hospitalId,
     });
+
     const totalAppointments = await Appointment.countDocuments({
       hospital: hospitalId,
     });
@@ -55,21 +53,20 @@ export const getDashboardStats = async (req, res) => {
     res.status(200).json({
       success: true,
       data: {
-        totalUsers,
         totalDoctors,
-        activeDoctors,
+        activeDoctors: activeDoctorsCount,
         totalPatients,
         totalAppointments,
       },
     });
   } catch (error) {
+    console.error(error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch dashboard stats",
     });
   }
 };
-
 export const getAllDoctors = async (req, res) => {
   try {
     const doctors = await Doctor.find({ hospital: req.hospitalId })
