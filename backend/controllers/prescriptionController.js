@@ -30,8 +30,6 @@ export const createPrescription = async (req, res) => {
       });
     }
 
-
-
     if (appointment.doctor.toString() !== doctor._id.toString()) {
       return res.status(403).json({
         success: false,
@@ -69,9 +67,16 @@ export const createPrescription = async (req, res) => {
       notes,
     });
 
+
+
+
+    await Appointment.findByIdAndUpdate(appointmentId, {
+      status: "completed",
+    });
+
     res.status(201).json({
       success: true,
-      message: "Prescription created successfully",
+      message: "Prescription created  & appointment  completed",
       data: prescription,
     });
   } catch (error) {
