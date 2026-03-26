@@ -2,6 +2,7 @@ import Prescription from "../models/Prescription.js";
 import Appointment from "../models/Appointment.js";
 import Doctor from "../models/Doctor.js";
 import Patient from "../models/Patient.js";
+import PDFDocument from "pdfkit";
 
 export const createPrescription = async (req, res) => {
   try {
@@ -66,7 +67,6 @@ export const createPrescription = async (req, res) => {
       diagnosis,
       notes,
     });
-
 
 
 
@@ -246,6 +246,94 @@ export const getDoctorAppointmentsForPrescription = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to fetch appointments",
+    });
+  }
+};
+
+export const downloadPrescriptionPDF = async (req, res) => {
+  try {
+    const prescription = await Prescription.findById(req.params.id)
+      .populate({
+        path: "patient",
+        populate: { path: "user", select: "name email" },
+      })
+      .populate({
+        path: "doctor",
+        populate: { path: "user", select: "name email" },
+      });
+
+    if (!prescription) {
+      return res.status(404).json({
+        success: false,
+        message: "Prescription not found",
+      });
+    }
+
+
+    const doc = new PDFDocument({ margin: 50 });
+
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `inline; filename=prescription-${prescription._id}.pdf`
+    );
+
+    doc.pipe(res);
+
+
+    doc
+      .fontSize(20)
+      .text("Smart Clinic Prescription", { align: "center" });
+
+    doc.moveDown();
+
+
+    doc.fontSize(12);
+    doc.text(`Doctor: ${prescription.doctor.user.name}`);
+    doc.text(`Patient: ${prescription.patient.user.name}`);
+    doc.text(`Date: ${new Date().toLocaleDateString()}`);
+
+    doc.moveDown();
+
+
+    doc.fontSize(14).text("Medicines:", { underline: true });
+    doc.moveDown(0.5);
+
+    prescription.medicines.forEach((med, i) => {
+      doc.text(
+        `${i + 1}. ${med.name} | ${med.dosage} | ${med.duration}`
+      );
+
+      if (med.instructions) {
+        doc.text(`   ➤ ${med.instructions}`);
+      }
+    });
+
+    doc.moveDown();
+
+
+    doc.fontSize(14).text("Diagnosis:", { underline: true });
+    doc.text(prescription.diagnosis || "-");
+
+    doc.moveDown();
+
+
+    doc.fontSize(14).text("Notes:", { underline: true });
+    doc.text(prescription.notes || "-");
+
+    doc.moveDown(2);
+
+    doc.text("Doctor Signature: ___________________", {
+      align: "right",
+    });
+
+    doc.end();
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "PDF generation failed",
     });
   }
 };
