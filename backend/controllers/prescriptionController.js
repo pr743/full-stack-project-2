@@ -250,8 +250,6 @@ export const getDoctorAppointmentsForPrescription = async (req, res) => {
 };
 
 
-import PDFDocument from "pdfkit";
-import Prescription from "../models/Prescription.js";
 
 export const downloadPrescriptionPDF = async (req, res) => {
   try {
