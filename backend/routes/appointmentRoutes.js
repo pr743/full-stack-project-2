@@ -45,7 +45,7 @@ router.delete("/admin/:id", protect, adminOnly, deleteAppointment);
 
 
 router.patch(
-  "/appointments/:id/reschedule",
+  "/:id/reschedule",
   rescheduleAppointment
 );
 
