@@ -42,6 +42,13 @@ const prescriptionSchema = new mongoose.Schema(
     notes: {
       type: String,
     },
+
+
+    signature: {
+      type: String
+
+    },
+
   },
   { timestamps: true }
 );

@@ -14,7 +14,7 @@ export const createPrescription = async (req, res) => {
       });
     }
 
-    const { appointmentId, medicines, diagnosis, notes } = req.body;
+    const { appointmentId, medicines, diagnosis, notes, signature } = req.body;
 
     if (!appointmentId || !medicines || medicines.length === 0) {
       return res.status(400).json({
@@ -66,9 +66,8 @@ export const createPrescription = async (req, res) => {
       medicines,
       diagnosis,
       notes,
+      signature,
     });
-
-
 
     await Appointment.findByIdAndUpdate(appointmentId, {
       status: "completed",
@@ -255,85 +254,68 @@ export const downloadPrescriptionPDF = async (req, res) => {
     const prescription = await Prescription.findById(req.params.id)
       .populate({
         path: "patient",
-        populate: { path: "user", select: "name email" },
+        populate: { path: "user", select: "name" },
       })
       .populate({
         path: "doctor",
-        populate: { path: "user", select: "name email" },
-      });
+        populate: { path: "user", select: "name" },
+      })
+      .populate("hospital");
 
-    if (!prescription) {
-      return res.status(404).json({
-        success: false,
-        message: "Prescription not found",
-      });
-    }
+    const doc = new PDFDocument({ margin: 40 });
 
-
-    const doc = new PDFDocument({ margin: 50 });
-
-
-    res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
-      `inline; filename=prescription-${prescription._id}.pdf`
+      `attachment; filename=prescription.pdf`
     );
+    res.setHeader("Content-Type", "application/pdf");
 
     doc.pipe(res);
 
 
-    doc
-      .fontSize(20)
-      .text("Smart Clinic Prescription", { align: "center" });
+    doc.fontSize(20).text(prescription.hospital?.name, { align: "center" });
+    doc.text("Rajkot, Gujarat", { align: "center" });
 
     doc.moveDown();
 
 
-    doc.fontSize(12);
-    doc.text(`Doctor: ${prescription.doctor.user.name}`);
-    doc.text(`Patient: ${prescription.patient.user.name}`);
+    doc.text(`Doctor: ${prescription.doctor?.user?.name}`);
+    doc.text(`Patient: ${prescription.patient?.user?.name}`);
     doc.text(`Date: ${new Date().toLocaleDateString()}`);
 
     doc.moveDown();
 
 
-    doc.fontSize(14).text("Medicines:", { underline: true });
-    doc.moveDown(0.5);
+    doc.text("Diagnosis:", { underline: true });
+    doc.text(prescription.diagnosis);
 
-    prescription.medicines.forEach((med, i) => {
-      doc.text(
-        `${i + 1}. ${med.name} | ${med.dosage} | ${med.duration}`
-      );
+    doc.moveDown();
 
-      if (med.instructions) {
-        doc.text(`   ➤ ${med.instructions}`);
-      }
+
+    doc.text("Medicines:", { underline: true });
+
+    prescription.medicines.forEach((m, i) => {
+      doc.text(`${i + 1}. ${m.name} - ${m.dosage} (${m.duration})`);
     });
-
-    doc.moveDown();
-
-
-    doc.fontSize(14).text("Diagnosis:", { underline: true });
-    doc.text(prescription.diagnosis || "-");
-
-    doc.moveDown();
-
-
-    doc.fontSize(14).text("Notes:", { underline: true });
-    doc.text(prescription.notes || "-");
 
     doc.moveDown(2);
 
-    doc.text("Doctor Signature: ___________________", {
-      align: "right",
-    });
+
+    if (prescription.signature) {
+      const base64Data = prescription.signature.replace(
+        /^data:image\/png;base64,/,
+        ""
+      );
+
+      const imgBuffer = Buffer.from(base64Data, "base64");
+
+      doc.image(imgBuffer, 400, doc.y, { width: 120 });
+    }
+
+    doc.text("Doctor Signature", 400, doc.y + 5);
 
     doc.end();
   } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      success: false,
-      message: "PDF generation failed",
-    });
+    res.status(500).json({ message: "PDF Error" });
   }
 };
