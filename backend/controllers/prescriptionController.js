@@ -250,6 +250,9 @@ export const getDoctorAppointmentsForPrescription = async (req, res) => {
 };
 
 
+import PDFDocument from "pdfkit";
+import Prescription from "../models/Prescription.js";
+
 export const downloadPrescriptionPDF = async (req, res) => {
   try {
     const prescription = await Prescription.findById(req.params.id)
@@ -267,10 +270,9 @@ export const downloadPrescriptionPDF = async (req, res) => {
       return res.status(404).json({ message: "Not found" });
     }
 
-    console.log("SIGNATURE:", prescription.signature); // debug
-
     const doc = new PDFDocument({ margin: 40 });
 
+    // ✅ HEADERS (FIX EMPTY PDF BUG)
     res.setHeader(
       "Content-Disposition",
       `attachment; filename=prescription-${prescription._id}.pdf`
@@ -279,24 +281,25 @@ export const downloadPrescriptionPDF = async (req, res) => {
 
     doc.pipe(res);
 
-
+    // ================= HEADER =================
     doc
       .fontSize(20)
-      .text(prescription.hospital?.name || "Hospital", {
+      .text(prescription.hospital?.name || "Hospital Name", {
         align: "center",
       });
 
     doc
       .fontSize(10)
-      .text("Rajkot, Gujarat", { align: "center" });
+      .text("Address: Gujarat, India", { align: "center" });
 
     doc.moveDown();
     doc.moveTo(50, doc.y).lineTo(550, doc.y).stroke();
 
 
     doc.moveDown();
-    doc.fontSize(12).text(`Doctor: ${prescription.doctor?.user?.name}`);
-    doc.text(`Patient: ${prescription.patient?.user?.name}`);
+
+    doc.fontSize(12).text(`Doctor: ${prescription.doctor?.user?.name || "-"}`);
+    doc.text(`Patient: ${prescription.patient?.user?.name || "-"}`);
     doc.text(
       `Date: ${new Date(prescription.createdAt).toLocaleDateString()}`
     );
@@ -311,34 +314,47 @@ export const downloadPrescriptionPDF = async (req, res) => {
 
 
     doc.fontSize(14).text("Medicines:", { underline: true });
+    doc.moveDown(0.5);
 
-    prescription.medicines.forEach((med, index) => {
-      doc.text(
-        `${index + 1}. ${med.name} - ${med.dosage} (${med.duration})`
-      );
-    });
+    if (prescription.medicines.length === 0) {
+      doc.text("No medicines");
+    } else {
+      prescription.medicines.forEach((med, index) => {
+        doc.text(
+          `${index + 1}. ${med.name} | ${med.dosage} | ${med.duration}`
+        );
+      });
+    }
+
+    doc.moveDown();
+
+
+    if (prescription.notes) {
+      doc.fontSize(14).text("Notes:", { underline: true });
+      doc.fontSize(12).text(prescription.notes);
+    }
 
     doc.moveDown(2);
 
 
-    if (
-      prescription.signature &&
-      prescription.signature.startsWith("data:image")
-    ) {
+    if (prescription.signature) {
       try {
-        const base64Data = prescription.signature.split(",")[1];
+        const base64Data = prescription.signature.replace(
+          /^data:image\/png;base64,/,
+          ""
+        );
+
         const imgBuffer = Buffer.from(base64Data, "base64");
 
         doc.image(imgBuffer, {
-          fit: [120, 60],
+          fit: [150, 80],
           align: "right",
         });
 
-        doc.moveDown(0.5);
         doc.text("Doctor Signature", { align: "right" });
-
       } catch (err) {
-        console.error("Signature error:", err);
+        console.log("Signature error:", err);
+        doc.text("Signature not available", { align: "right" });
       }
     }
 
