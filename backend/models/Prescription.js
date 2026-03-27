@@ -45,7 +45,8 @@ const prescriptionSchema = new mongoose.Schema(
 
 
     signature: {
-      type: String
+      type: String,
+      default: "",
 
     },
 

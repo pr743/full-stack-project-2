@@ -66,7 +66,7 @@ export const createPrescription = async (req, res) => {
       medicines,
       diagnosis,
       notes,
-      signature,
+      signature: signature || "",
     });
 
     await Appointment.findByIdAndUpdate(appointmentId, {
@@ -249,6 +249,7 @@ export const getDoctorAppointmentsForPrescription = async (req, res) => {
   }
 };
 
+
 export const downloadPrescriptionPDF = async (req, res) => {
   try {
     const prescription = await Prescription.findById(req.params.id)
@@ -262,60 +263,88 @@ export const downloadPrescriptionPDF = async (req, res) => {
       })
       .populate("hospital");
 
+    if (!prescription) {
+      return res.status(404).json({ message: "Not found" });
+    }
+
+    console.log("SIGNATURE:", prescription.signature); // debug
+
     const doc = new PDFDocument({ margin: 40 });
 
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename=prescription.pdf`
+      `attachment; filename=prescription-${prescription._id}.pdf`
     );
     res.setHeader("Content-Type", "application/pdf");
 
     doc.pipe(res);
 
 
-    doc.fontSize(20).text(prescription.hospital?.name, { align: "center" });
-    doc.text("Rajkot, Gujarat", { align: "center" });
+    doc
+      .fontSize(20)
+      .text(prescription.hospital?.name || "Hospital", {
+        align: "center",
+      });
+
+    doc
+      .fontSize(10)
+      .text("Rajkot, Gujarat", { align: "center" });
 
     doc.moveDown();
+    doc.moveTo(50, doc.y).lineTo(550, doc.y).stroke();
 
 
-    doc.text(`Doctor: ${prescription.doctor?.user?.name}`);
+    doc.moveDown();
+    doc.fontSize(12).text(`Doctor: ${prescription.doctor?.user?.name}`);
     doc.text(`Patient: ${prescription.patient?.user?.name}`);
-    doc.text(`Date: ${new Date().toLocaleDateString()}`);
+    doc.text(
+      `Date: ${new Date(prescription.createdAt).toLocaleDateString()}`
+    );
 
     doc.moveDown();
 
 
-    doc.text("Diagnosis:", { underline: true });
-    doc.text(prescription.diagnosis);
+    doc.fontSize(14).text("Diagnosis:", { underline: true });
+    doc.fontSize(12).text(prescription.diagnosis || "-");
 
     doc.moveDown();
 
 
-    doc.text("Medicines:", { underline: true });
+    doc.fontSize(14).text("Medicines:", { underline: true });
 
-    prescription.medicines.forEach((m, i) => {
-      doc.text(`${i + 1}. ${m.name} - ${m.dosage} (${m.duration})`);
+    prescription.medicines.forEach((med, index) => {
+      doc.text(
+        `${index + 1}. ${med.name} - ${med.dosage} (${med.duration})`
+      );
     });
 
     doc.moveDown(2);
 
 
-    if (prescription.signature) {
-      const base64Data = prescription.signature.replace(
-        /^data:image\/png;base64,/,
-        ""
-      );
+    if (
+      prescription.signature &&
+      prescription.signature.startsWith("data:image")
+    ) {
+      try {
+        const base64Data = prescription.signature.split(",")[1];
+        const imgBuffer = Buffer.from(base64Data, "base64");
 
-      const imgBuffer = Buffer.from(base64Data, "base64");
+        doc.image(imgBuffer, {
+          fit: [120, 60],
+          align: "right",
+        });
 
-      doc.image(imgBuffer, 400, doc.y, { width: 120 });
+        doc.moveDown(0.5);
+        doc.text("Doctor Signature", { align: "right" });
+
+      } catch (err) {
+        console.error("Signature error:", err);
+      }
     }
-
-    doc.text("Doctor Signature", 400, doc.y + 5);
 
     doc.end();
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "PDF Error" });
   }
 };
