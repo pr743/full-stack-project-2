@@ -14,6 +14,7 @@ import {
   cancelAppointment,
   getPatientHistory,
   deleteAppointment,
+  rescheduleAppointment
 } from "../controllers/appointmentController.js";
 
 const router = express.Router();
@@ -41,6 +42,12 @@ router.get(
 );
 
 router.delete("/admin/:id", protect, adminOnly, deleteAppointment);
+
+
+router.patch(
+  "/appointments/:id/reschedule",
+  rescheduleAppointment
+);
 
 
 export default router;

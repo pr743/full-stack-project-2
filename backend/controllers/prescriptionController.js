@@ -270,7 +270,7 @@ export const downloadPrescriptionPDF = async (req, res) => {
 
     const doc = new PDFDocument({ margin: 40 });
 
-    // ✅ HEADERS (FIX EMPTY PDF BUG)
+
     res.setHeader(
       "Content-Disposition",
       `attachment; filename=prescription-${prescription._id}.pdf`
@@ -279,7 +279,7 @@ export const downloadPrescriptionPDF = async (req, res) => {
 
     doc.pipe(res);
 
-    // ================= HEADER =================
+
     doc
       .fontSize(20)
       .text(prescription.hospital?.name || "Hospital Name", {
@@ -288,7 +288,7 @@ export const downloadPrescriptionPDF = async (req, res) => {
 
     doc
       .fontSize(10)
-      .text("Address: Gujarat, India", { align: "center" });
+      .text("Address: Gujarat, India Rajkot", { align: "center" });
 
     doc.moveDown();
     doc.moveTo(50, doc.y).lineTo(550, doc.y).stroke();

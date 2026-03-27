@@ -276,10 +276,6 @@ export const getPatientHistory = async (req, res) => {
 };
 
 
-
-
-
-
 export const deleteAppointment = async (req, res) => {
   try {
     const { id } = req.params;
@@ -314,3 +310,41 @@ export const deleteAppointment = async (req, res) => {
     });
   }
 };
+
+
+
+export const rescheduleAppointment = async (req, res) => {
+  try {
+    const { newDate, newSlotTime } = req.body;
+
+    if (!newDate || !newSlotTime) {
+      return res.status(400).json({
+        message: "Date and time required ❌",
+      });
+    }
+
+    const appointment = await Appointment.findById(req.params.id);
+
+    if (!appointment) {
+      return res.status(404).json({
+        message: "Appointment not found",
+      });
+    }
+
+    appointment.appointmentDate = new Date(newDate);
+    appointment.slotTime = newSlotTime;
+
+    await appointment.save();
+
+    res.json({
+      message: "Rescheduled successfully ✅",
+      data: appointment,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Server error ❌",
+    });
+  }
+};
+
