@@ -256,7 +256,19 @@ export const bookAppointment = async (req, res) => {
 
 export const getPatientAppointments = async (req, res) => {
   try {
-    const appointment = await Appointment.find({ user: req.user._id })
+
+    const patient = await Patient.findOne({ user: req.user._id });
+
+    if (!patient) {
+      return res.status(404).json({
+        message: "Patient profile not found",
+      });
+    }
+
+
+    const appointments = await Appointment.find({
+      patient: patient._id,
+    })
       .populate({
         path: "doctor",
         populate: { path: "user", select: "name" },
@@ -264,7 +276,7 @@ export const getPatientAppointments = async (req, res) => {
       .populate("hospital", "name city")
       .sort({ createdAt: -1 });
 
-    res.json({ data: appointment });
+    res.json({ data: appointments });
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch appointments" });
   }
@@ -273,9 +285,15 @@ export const getPatientAppointments = async (req, res) => {
 
 export const deleteAppointment = async (req, res) => {
   try {
+    const patient = await Patient.findOne({ user: req.user._id });
+
+    if (!patient) {
+      return res.status(404).json({ message: "Patient not found" });
+    }
+
     const appt = await Appointment.findOneAndDelete({
       _id: req.params.id,
-      patient: req.user.patientId,
+      patient: patient._id,
     });
 
     if (!appt) {
