@@ -1,7 +1,7 @@
 
 import express from "express";
 import { doctorOnly, patientOnly, protect } from "../middleware/authMiddleware.js";
-import { createPrescription, getDoctorPrescription, getDoctorTodayAppointments, getPatientHistory, getPatientPrescription, getDoctorAppointmentsForPrescription, downloadPrescriptionPDF } from "../controllers/prescriptionController.js";
+import { createPrescription, getDoctorPrescription, getDoctorTodayAppointments, getPatientHistory, getPatientPrescription, getDoctorAppointmentsForPrescription, downloadPrescriptionPDF, deletePrescription } from "../controllers/prescriptionController.js";
 
 const router = express.Router();
 
@@ -19,5 +19,12 @@ router.get(
 
 
 router.get("/:id/pdf", protect, downloadPrescriptionPDF);
+
+router.delete(
+    "/doctor/appointments",
+    protect,
+    patientOnly,
+    deletePrescription
+);
 
 export default router;

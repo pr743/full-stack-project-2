@@ -208,6 +208,18 @@ export const getPatientHistory = async (req, res) => {
   }
 };
 
+export const deletePrescription = async (req, res) => {
+  try {
+    await Prescription.findByIdAndDelete(req.params.id);
+
+    res.json({
+      success: true,
+      message: "Deleted successfully",
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Delete failed" });
+  }
+};
 
 
 
