@@ -67,6 +67,74 @@ export const getDashboardStats = async (req, res) => {
     });
   }
 };
+
+
+
+export const getClinicInsights = async (req, res) => {
+  try {
+    const hospitalId = req.user.hospitalId;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+
+    const appointments = await Appointment.find({
+      hospitalId,
+      appointmentDate: { $gte: today },
+    });
+
+    const totalAppointments = appointments.length;
+
+
+    const emergencyCount = appointments.filter(
+      (a) => a.appointmentType === "emergency"
+    ).length;
+
+
+    const doctorSet = new Set(
+      appointments.map((a) => a.doctor?.toString())
+    );
+
+    const totalDoctors = doctorSet.size || 1;
+
+
+    const loadPerDoctor = totalAppointments / totalDoctors;
+
+
+    let suggestions = [];
+
+
+    if (loadPerDoctor > 20) {
+      suggestions.push("⚠️ High patient load. Consider adding more doctors.");
+    }
+
+
+    if (emergencyCount > 5) {
+      suggestions.push("🚨 Emergency cases increasing. Keep emergency slots free.");
+    }
+
+
+    if (totalAppointments < 10) {
+      suggestions.push("📉 Low bookings. You can increase slot duration (20 min).");
+    } else {
+      suggestions.push("📈 High demand. Use shorter slots (10–15 min).");
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        totalAppointments,
+        emergencyCount,
+        totalDoctors,
+        loadPerDoctor,
+        suggestions,
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "AI Insights failed" });
+  }
+};
 export const getAllDoctors = async (req, res) => {
   try {
     const doctors = await Doctor.find({ hospital: req.hospitalId })

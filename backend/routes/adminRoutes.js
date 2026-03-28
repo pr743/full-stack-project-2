@@ -7,7 +7,8 @@ import {
   toggleUserStatus,
   deleteDoctor,
   deletePatient,
-  updateDoctor
+  updateDoctor,
+  getClinicInsights
 
 } from "../controllers/adminController.js";
 
@@ -23,6 +24,7 @@ router.patch("/users/:userId/toggle", protect, adminOnly, toggleUserStatus);
 router.delete("/users/:userId", protect, adminOnly, deleteDoctor);
 router.delete("/patients/:userId", protect, adminOnly, deletePatient);
 router.put("/doctors/:doctorId", protect, adminOnly, updateDoctor);
+router.get("/ai-insights", protect, adminOnly, getClinicInsights);
 
 
 export default router;
