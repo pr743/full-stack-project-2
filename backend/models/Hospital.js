@@ -55,6 +55,10 @@ const hospitalSchema = new mongoose.Schema(
       default: [],
     },
 
+
+
+
+
   },
   { timestamps: true }
 );

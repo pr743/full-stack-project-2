@@ -4,67 +4,196 @@ import Hospital from "../models/Hospital.js";
 import Patient from "../models/Patient.js";
 import mongoose from "mongoose";
 
+// export const bookAppointment = async (req, res) => {
+//   try {
+//     if (req.user.role !== "patient") {
+//       return res.status(403).json({ success: false, message: "Patients only" });
+//     }
+
+//     const { hospitalId, doctorId, appointmentDate, reason, appointmentType } =
+//       req.body;
+
+//     if (!hospitalId || !doctorId || !appointmentDate || !appointmentType) {
+//       return res
+//         .status(400)
+//         .json({ success: false, message: "Missing required fields" });
+//     }
+
+//     const patient = await Patient.findOne({ user: req.user._id });
+//     if (!patient) {
+//       return res
+//         .status(400)
+//         .json({ success: false, message: "Patient not found" });
+//     }
+
+//     const doctor = await Doctor.findOne({
+//       _id: doctorId,
+//       hospital: hospitalId,
+//       isActive: true,
+//     });
+//     if (!doctor) {
+//       return res
+//         .status(400)
+//         .json({ success: false, message: "Doctor not available" });
+//     }
+
+//     const appointment = await Appointment.create({
+//       patient: patient._id,
+//       doctor: doctor._id,
+//       hospital: hospitalId,
+//       appointmentDate: new Date(appointmentDate),
+//       slotTime,
+//       reason,
+//       appointmentType,
+//       status: "booked",
+//     });
+
+//     doctor.currentPatients += 1;
+//     await doctor.save();
+
+//     return res.status(200).json({
+//       success: true,
+//       message: "Appointment booked successfully",
+//       token,
+//       queueNumber,
+//       waitTime,
+//       slotTime,
+//       data: appointment,
+//     });
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ success: false, message: "Server error" });
+//   }
+// };
+
+
 export const bookAppointment = async (req, res) => {
   try {
     if (req.user.role !== "patient") {
       return res.status(403).json({ success: false, message: "Patients only" });
     }
 
-    const { hospitalId, doctorId, appointmentDate, reason, appointmentType } =
-      req.body;
+    const { hospitalId, appointmentDate, reason, appointmentType } = req.body;
 
-    if (!hospitalId || !doctorId || !appointmentDate || !appointmentType) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Missing required fields" });
+    if (!hospitalId || !appointmentDate || !appointmentType) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields",
+      });
     }
 
     const patient = await Patient.findOne({ user: req.user._id });
     if (!patient) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Patient not found" });
+      return res.status(400).json({
+        success: false,
+        message: "Patient not found",
+      });
     }
 
-    const doctor = await Doctor.findOne({
-      _id: doctorId,
+
+    const doctors = await Doctor.find({
       hospital: hospitalId,
       isActive: true,
     });
-    if (!doctor) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Doctor not available" });
+
+    if (doctors.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No doctors available",
+      });
     }
+
+
+    let selectedDoctor = doctors[0];
+
+    for (let doc of doctors) {
+      if (doc.currentPatients < selectedDoctor.currentPatients) {
+        selectedDoctor = doc;
+      }
+    }
+
+    const selectedDate = new Date(appointmentDate);
+    const day = selectedDate.getDay();
+
+    if (day === 0 && appointmentType === "normal") {
+      return res.status(400).json({
+        success: false,
+        message: "Hospital closed on Sunday",
+      });
+    }
+
+
+    const todayStart = new Date(appointmentDate);
+    todayStart.setHours(0, 0, 0, 0);
+
+    const todayEnd = new Date(appointmentDate);
+    todayEnd.setHours(23, 59, 59, 999);
+
+    const todayAppointments = await Appointment.find({
+      doctor: selectedDoctor._id,
+      appointmentDate: { $gte: todayStart, $lte: todayEnd },
+    });
+
+
+    const avgTime = selectedDoctor.avgConsultTime || 15;
+    const startHour = 10;
+
+    const slotIndex = todayAppointments.length;
+
+    const slotHour = startHour + Math.floor((slotIndex * avgTime) / 60);
+    const slotMinute = (slotIndex * avgTime) % 60;
+
+    const slotTime = `${slotHour}:${slotMinute
+      .toString()
+      .padStart(2, "0")}`;
+
+
+    const queueNumber = slotIndex + 1;
+    const waitTime = queueNumber * avgTime;
+
+
+    let finalSlot = slotTime;
+
+    if (appointmentType === "emergency") {
+      finalSlot = "Immediate (Priority)";
+    }
+
 
     const appointment = await Appointment.create({
       patient: patient._id,
-      doctor: doctor._id,
+      doctor: selectedDoctor._id,
       hospital: hospitalId,
-      appointmentDate: new Date(appointmentDate),
-      slotTime,
+      appointmentDate: selectedDate,
+      slotTime: finalSlot,
       reason,
       appointmentType,
       status: "booked",
     });
 
-    doctor.currentPatients += 1;
-    await doctor.save();
+
+    selectedDoctor.currentPatients += 1;
+    await selectedDoctor.save();
 
     return res.status(200).json({
       success: true,
       message: "Appointment booked successfully",
-      token,
+      data: appointment,
       queueNumber,
       waitTime,
-      slotTime,
-      data: appointment,
+      slotTime: finalSlot,
+      doctorName: selectedDoctor._id,
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ success: false, message: "Server error" });
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
   }
 };
+
+
+
 export const getDoctorAppointment = async (req, res) => {
   try {
     if (req.user.role !== "doctor") {
