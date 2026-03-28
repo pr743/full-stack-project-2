@@ -7,6 +7,9 @@ import {
   bookAppointment,
   getHospitalsForPatient,
   getDoctorsByHospital,
+  getPatientAppointments,
+  deleteAppointment
+
 } from "../controllers/patientController.js";
 import { protect } from "../middleware/authMiddleware.js";
 
@@ -22,5 +25,9 @@ router.get("/hospitals", protect, getHospitalsForPatient);
 router.get("/hospitals/:hospitalId/doctors", protect, getDoctorsByHospital);
 
 router.post("/appointment", protect, bookAppointment);
+
+
+router.get("/appointments", authPatient, getPatientAppointments);
+router.delete("/appointments/:id", authPatient, deleteAppointment);
 
 export default router;

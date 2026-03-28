@@ -187,8 +187,8 @@ export const bookAppointment = async (req, res) => {
       hospitalId,
     } = req.body;
 
-    
-    if (!hospitalId ||  !doctorId || !appointmentDate || !reason || !appointmentType) {
+
+    if (!hospitalId || !doctorId || !appointmentDate || !reason || !appointmentType) {
       return res.status(400).json({
         success: false,
         message: "Required fields missing",
@@ -245,7 +245,6 @@ export const bookAppointment = async (req, res) => {
     });
   } catch (error) {
     console.error("BOOK APPOINTMENT ERROR:", error);
-
     return res.status(500).json({
       success: false,
       message: "Internal server error",
@@ -255,5 +254,38 @@ export const bookAppointment = async (req, res) => {
 };
 
 
+export const getPatientAppointments = async (req, res) => {
+  try {
+    const appointments = await Appointment.find({
+      patient: req.user.patientId,
+    })
+      .populate({
+        path: "doctor",
+        populate: { path: "user", select: "name" },
+      })
+      .populate("hospital", "name city")
+      .sort({ createdAt: -1 });
+
+    res.json({ data: appointments });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch appointments" });
+  }
+};
 
 
+export const deleteAppointment = async (req, res) => {
+  try {
+    const appt = await Appointment.findOneAndDelete({
+      _id: req.params.id,
+      patient: req.user.patientId,
+    });
+
+    if (!appt) {
+      return res.status(404).json({ message: "Not found" });
+    }
+
+    res.json({ message: "Appointment deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Delete failed" });
+  }
+};
