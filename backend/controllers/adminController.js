@@ -390,3 +390,105 @@ export const aiHospitalSetup = async (req, res) => {
     });
   }
 };
+
+
+export const aiDoctorSetup = async (req, res) => {
+  try {
+    const { specialization, experience } = req.body;
+
+    const hospitalId = req.user.hospitalId;
+
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const todayAppointments = await Appointment.find({
+      hospital: hospitalId,
+      appointmentDate: { $gte: today },
+    });
+
+    const totalAppointments = todayAppointments.length;
+
+    const doctors = await Doctor.find({ hospital: hospitalId });
+    const totalDoctors = doctors.length || 1;
+
+    const loadPerDoctor = totalAppointments / totalDoctors;
+
+
+    let avgConsultTime = 15;
+    let dailyLimit = 20;
+    let consultationFee = 300;
+
+    let suggestions = [];
+
+
+    if (specialization?.toLowerCase().includes("cardio")) {
+      avgConsultTime = 10;
+      consultationFee = 800;
+      suggestions.push("❤️ Cardiologist → Short time, higher fee");
+    }
+
+    if (specialization?.toLowerCase().includes("general")) {
+      avgConsultTime = 15;
+      consultationFee = 300;
+      suggestions.push("🩺 General → Balanced setup");
+    }
+
+    if (specialization?.toLowerCase().includes("derma")) {
+      avgConsultTime = 12;
+      consultationFee = 500;
+      suggestions.push("🧴 Dermatology → Medium time, good fee");
+    }
+
+
+    if (experience > 10) {
+      consultationFee += 200;
+      dailyLimit += 10;
+      suggestions.push("👨‍⚕️ Experienced doctor → More patients + higher fee");
+    }
+
+    if (experience < 2) {
+      dailyLimit = 10;
+      suggestions.push("🆕 New doctor → Lower patient load");
+    }
+
+
+    if (loadPerDoctor > 25) {
+      dailyLimit += 10;
+      avgConsultTime = Math.max(10, avgConsultTime - 5);
+      suggestions.push("⚠️ High load → Increase capacity & reduce time");
+    }
+
+    if (loadPerDoctor < 10) {
+      avgConsultTime += 5;
+      suggestions.push("📉 Low load → Increase consult time");
+    }
+
+
+    return res.json({
+      success: true,
+      data: {
+        avgConsultTime,
+        dailyLimit,
+        consultationFee,
+        loadPerDoctor,
+        suggestions,
+      },
+    });
+
+  } catch (err) {
+    console.error("AI DOCTOR SETUP ERROR:", err);
+    res.status(500).json({
+      success: false,
+      message: "AI failed",
+    });
+  }
+};
+
+
+
+
+
+
+
+
