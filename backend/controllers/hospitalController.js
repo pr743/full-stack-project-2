@@ -117,15 +117,7 @@ export const getHospitalByCity = async (req, res) => {
 
 export const addHospital = async (req, res) => {
   try {
-    const {
-      name,
-      city,
-      address,
-      startTime,
-      endTime,
-      slotDuration,
-      emergencyEnabled,
-    } = req.body;
+    const { name, city, address, area } = req.body;
 
 
     if (!name || !city) {
@@ -147,38 +139,38 @@ export const addHospital = async (req, res) => {
     let hospital = await Hospital.findOne({ admin: req.user._id });
 
 
-    let finalSlot = slotDuration || 15;
-    let finalStart = startTime || "09:00";
-    let finalEnd = endTime || "21:00";
-    let finalEmergency = emergencyEnabled ?? true;
+    let slotDuration = 15;
+    let maxPatientsPerDay = 50;
+    let emergencySupport = true;
+    let aiInsights = [];
 
-    if (!slotDuration) {
-      if (city.toLowerCase().includes("village")) {
-        finalSlot = 20;
-      } else if (city.toLowerCase().includes("metro")) {
-        finalSlot = 10;
-      } else {
-        finalSlot = 15;
-      }
+    const cityLower = city.toLowerCase();
+
+    if (cityLower.includes("village")) {
+      slotDuration = 20;
+      maxPatientsPerDay = 30;
+      aiInsights.push("Rural area detected → Increase consultation time");
+    }
+
+    if (cityLower.includes("metro") || cityLower.includes("city")) {
+      slotDuration = 10;
+      maxPatientsPerDay = 80;
+      aiInsights.push("High demand area → Reduce slot time");
     }
 
 
     if (hospital) {
       hospital.name = name;
-      hospital.city = city.trim().toLowerCase();
+      hospital.city = cityLower;
       hospital.address = address;
+      hospital.area = area;
 
-
-      hospital.startTime = finalStart;
-      hospital.endTime = finalEnd;
-      hospital.slotDuration = finalSlot;
-      hospital.emergencyEnabled = finalEmergency;
+      hospital.slotDuration = slotDuration;
+      hospital.maxPatientsPerDay = maxPatientsPerDay;
+      hospital.emergencySupport = emergencySupport;
+      hospital.aiInsights = aiInsights;
 
       await hospital.save();
-
-      await User.findByIdAndUpdate(req.user._id, {
-        hospitalId: hospital._id,
-      });
 
       return res.status(200).json({
         success: true,
@@ -190,17 +182,15 @@ export const addHospital = async (req, res) => {
 
     hospital = await Hospital.create({
       name,
-      city: city.trim().toLowerCase(),
+      city: cityLower,
       address,
+      area,
       admin: req.user._id,
 
-
-      startTime: finalStart,
-      endTime: finalEnd,
-      slotDuration: finalSlot,
-      emergencyEnabled: finalEmergency,
-
-      isActive: true,
+      slotDuration,
+      maxPatientsPerDay,
+      emergencySupport,
+      aiInsights,
     });
 
 
@@ -208,9 +198,7 @@ export const addHospital = async (req, res) => {
       hospitalId: hospital._id,
     });
 
-
-
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: "Hospital created successfully",
       hospital,
@@ -218,7 +206,8 @@ export const addHospital = async (req, res) => {
 
   } catch (error) {
     console.error("ADD HOSPITAL ERROR:", error);
-    res.status(500).json({
+
+    return res.status(500).json({
       success: false,
       message: "Failed to save hospital",
     });

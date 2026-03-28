@@ -351,3 +351,42 @@ export const updateDoctor = async (req, res) => {
     });
   }
 };
+
+
+
+export const aiHospitalSetup = async (req, res) => {
+  try {
+    const { city, name } = req.body;
+
+    let slotDuration = 15;
+    let suggestion = [];
+
+    if (city?.toLowerCase().includes("village")) {
+      slotDuration = 20;
+      suggestion.push("Rural area → Increase slot time");
+    }
+
+    if (name?.toLowerCase().includes("clinic")) {
+      suggestion.push("Small clinic → fewer doctors needed");
+    }
+
+    suggestion.push("Start with 1-2 doctors");
+    suggestion.push("Morning 9AM - Evening 6PM schedule recommended");
+
+    res.json({
+      success: true,
+      data: {
+        slotDuration,
+        startTime: "09:00",
+        endTime: "18:00",
+        suggestions: suggestion,
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success: false,
+      message: "AI failed",
+    });
+  }
+};
