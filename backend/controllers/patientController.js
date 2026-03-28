@@ -256,9 +256,7 @@ export const bookAppointment = async (req, res) => {
 
 export const getPatientAppointments = async (req, res) => {
   try {
-    const appointments = await Appointment.find({
-      patient: req.user.patientId,
-    })
+    const appointment = await Appointment.find({ user: req.user._id })
       .populate({
         path: "doctor",
         populate: { path: "user", select: "name" },
@@ -266,7 +264,7 @@ export const getPatientAppointments = async (req, res) => {
       .populate("hospital", "name city")
       .sort({ createdAt: -1 });
 
-    res.json({ data: appointments });
+    res.json({ data: appointment });
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch appointments" });
   }
