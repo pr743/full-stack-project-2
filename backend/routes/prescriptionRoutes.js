@@ -9,9 +9,9 @@ router.post("/", protect, doctorOnly, createPrescription);
 router.get("/doctor", protect, doctorOnly, getDoctorPrescription);
 router.get("/patient", protect, patientOnly, getPatientPrescription);
 router.get("/history", protect, patientOnly, getPatientHistory);
-router.get("/doctor/appointments", protect, doctorOnly, getDoctorTodayAppointments);
+router.get("/doctor/today-appointments", protect, doctorOnly, getDoctorTodayAppointments);
 router.get(
-    "/doctor/appointments",
+    "/doctor/all-appointments",
     protect,
     doctorOnly,
     getDoctorAppointmentsForPrescription
@@ -21,7 +21,7 @@ router.get(
 router.get("/:id/pdf", protect, downloadPrescriptionPDF);
 
 router.delete(
-    "/doctor/appointments",
+    "/:id",
     protect,
     patientOnly,
     deletePrescription
