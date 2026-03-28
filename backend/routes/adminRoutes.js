@@ -9,7 +9,8 @@ import {
   deletePatient,
   updateDoctor,
   getClinicInsights,
-  aiHospitalSetup
+  aiHospitalSetup,
+  aiDoctorSetup
 
 } from "../controllers/adminController.js";
 
@@ -29,7 +30,7 @@ router.get("/ai-insights", protect, adminOnly, getClinicInsights);
 
 router.post("/ai-hospital-setup", protect, adminOnly, aiHospitalSetup);
 
-
+router.post("/ai-doctor-setup", protect, adminOnly, aiDoctorSetup);
 
 export default router;
 
