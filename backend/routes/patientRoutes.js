@@ -11,7 +11,7 @@ import {
   deleteAppointment
 
 } from "../controllers/patientController.js";
-import { protect } from "../middleware/authMiddleware.js";
+import { patientOnly, protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
@@ -27,7 +27,7 @@ router.get("/hospitals/:hospitalId/doctors", protect, getDoctorsByHospital);
 router.post("/appointment", protect, bookAppointment);
 
 
-router.get("/appointments", authPatient, getPatientAppointments);
-router.delete("/appointments/:id", authPatient, deleteAppointment);
+router.get("/appointments", protect, patientOnly, getPatientAppointments);
+router.delete("/appointments/:id", protect, patientOnly, deleteAppointment);
 
 export default router;
