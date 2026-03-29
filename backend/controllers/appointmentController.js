@@ -89,7 +89,7 @@ export const bookAppointment = async (req, res) => {
     const existingAppointment = await Appointment.findOne({
       patient: patient._id,
       doctor: doctorId,
-      appointmentDate,
+      appointmentDate: new Date(appointmentDate),
       slotTime,
       status: { $ne: ["cancelled"] },
     });
@@ -101,6 +101,29 @@ export const bookAppointment = async (req, res) => {
       });
     }
 
+
+
+    const slot = await appointment.findOne({
+      doctor: doctorId,
+      date: new Date(appointmentDate),
+      time: slotTime,
+
+    });
+
+    if (!slot) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid slot",
+      });
+    }
+
+
+    if (!slot.booked >= slot.capacity) {
+      return res.status(400).json({
+        success: false,
+        message: "Slot full, choose another time",
+      });
+    }
 
     const appointment = await Appointment.create({
       patient: patient._id,
