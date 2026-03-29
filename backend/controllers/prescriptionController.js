@@ -208,31 +208,44 @@ export const getPatientHistory = async (req, res) => {
   }
 };
 
+// export const deletePrescription = async (req, res) => {
+//   try {
+//     const patient = await Patient.findOne({ user: req.user._id });
+
+//     const prescription = await Prescription.findOneAndDelete({
+//       _id: req.params.id,
+//       patient: patient._id,
+//     });
+
+//     if (!prescription) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Prescription not found",
+//       });
+//     }
+
+//     res.json({
+//       success: true,
+//       message: "Deleted successfully",
+//     });
+//   } catch (err) {
+//     res.status(500).json({ message: "Delete failed" });
+//   }
+// };
+
+
 export const deletePrescription = async (req, res) => {
   try {
-    const patient = await Patient.findOne({ user: req.user._id });
-
-    const prescription = await Prescription.findOneAndDelete({
-      _id: req.params.id,
-      patient: patient._id,
-    });
-
-    if (!prescription) {
-      return res.status(404).json({
-        success: false,
-        message: "Prescription not found",
-      });
-    }
+    await Prescription.findByIdAndDelete(req.params.id);
 
     res.json({
       success: true,
       message: "Deleted successfully",
     });
-  } catch (err) {
+  } catch {
     res.status(500).json({ message: "Delete failed" });
   }
 };
-
 
 
 export const getDoctorAppointmentsForPrescription = async (req, res) => {
@@ -248,7 +261,7 @@ export const getDoctorAppointmentsForPrescription = async (req, res) => {
 
     const appointments = await Appointment.find({
       doctor: doctor._id,
-      status: "completed",
+      status: "in-progress",
     })
       .populate({
         path: "patient",
