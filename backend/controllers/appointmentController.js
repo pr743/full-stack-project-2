@@ -471,7 +471,7 @@ export const deleteAppointment = async (req, res) => {
     }
 
 
-    if (!["cancelled", "completed"].includes(appointment.status)) {
+    if (appointment.status === "cancelled" || appointment.status === "completed") {
       return res.status(400).json({
         success: false,
         message: "Only cancelled or completed appointments can be deleted",
