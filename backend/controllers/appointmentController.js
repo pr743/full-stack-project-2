@@ -233,7 +233,7 @@ export const updateAppointmentStatus = async (req, res) => {
     }
 
 
-    const allowedStatus = ["booked", "completed", "cancelled"];
+    const allowedStatus = ["booked", "in-progress", "completed", "cancelled"];
     if (!allowedStatus.includes(status)) {
       return res.status(400).json({
         success: false,
