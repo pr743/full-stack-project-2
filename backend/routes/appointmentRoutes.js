@@ -29,7 +29,6 @@ router.patch(
   protect,
   doctorOnly,
   updateAppointmentStatus,
-  getAvailableSlots,
 );
 
 router.get("/admin", protect, adminOnly, getAllAppointment);
@@ -54,8 +53,6 @@ router.patch(
 );
 
 router.get("/available-slots", getAvailableSlots);
-
-
 
 
 export default router;
