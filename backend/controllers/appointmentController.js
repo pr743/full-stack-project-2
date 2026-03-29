@@ -4,6 +4,7 @@ import Hospital from "../models/Hospital.js";
 import Patient from "../models/Patient.js";
 import mongoose from "mongoose";
 import { generateSlots } from "../utils/generateSlots.js";
+import Slot from "../models/slotModel.js";
 
 export const bookAppointment = async (req, res) => {
   try {
@@ -65,6 +66,46 @@ export const bookAppointment = async (req, res) => {
     }
 
 
+    const existingAppointment = await Appointment.findOne({
+      patient: patient._id,
+      doctor: doctorId,
+      appointmentDate: selectedDate,
+      slotTime,
+      status: { $ne: ["cancelled"] },
+    });
+
+
+    const slot = await Slot.findOne({
+      doctor: doctorId,
+      date: new Date(appointmentDate),
+      time: slotTime,
+
+    });
+
+
+    if (!slot) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid slot",
+      });
+    }
+
+    if (!slot.booked >= slot.capacity) {
+      return res.status(400).json({
+        success: false,
+        message: "Slot full, choose another time",
+      });
+    }
+
+
+    if (existingAppointment) {
+      return res.status(400).json({
+        success: false,
+        message: "You already have an appointment at this time",
+      });
+    }
+
+
     const start = new Date(appointmentDate);
     start.setHours(0, 0, 0, 0);
 
@@ -78,46 +119,6 @@ export const bookAppointment = async (req, res) => {
       });
     }
 
-
-
-    const existingAppointment = await Appointment.findOne({
-      patient: patient._id,
-      doctor: doctorId,
-      appointmentDate: new Date(appointmentDate),
-      slotTime,
-      status: { $ne: ["cancelled"] },
-    });
-
-    if (existingAppointment) {
-      return res.status(400).json({
-        success: false,
-        message: "You already have an appointment at this time",
-      });
-    }
-
-
-
-    const slot = await appointment.findOne({
-      doctor: doctorId,
-      date: new Date(appointmentDate),
-      time: slotTime,
-
-    });
-
-    if (!slot) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid slot",
-      });
-    }
-
-
-    if (!slot.booked >= slot.capacity) {
-      return res.status(400).json({
-        success: false,
-        message: "Slot full, choose another time",
-      });
-    }
 
     const appointment = await Appointment.create({
       patient: patient._id,
