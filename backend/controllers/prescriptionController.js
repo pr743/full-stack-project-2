@@ -255,7 +255,7 @@ export const getDoctorAppointmentsForPrescription = async (req, res) => {
       .select("appointmentDate slotTime patient status")
       .sort({ appointmentDate: -1 });
 
-    console.log("Appointments:", appointments); // DEBUG
+    console.log("Appointments:", appointments);
 
     res.status(200).json({
       success: true,

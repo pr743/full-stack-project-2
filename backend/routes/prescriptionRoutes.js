@@ -11,7 +11,7 @@ router.get("/patient", protect, patientOnly, getPatientPrescription);
 router.get("/history", protect, patientOnly, getPatientHistory);
 router.get("/doctor/today-appointments", protect, doctorOnly, getDoctorTodayAppointments);
 router.get(
-    "/doctor/all-appointments",
+    "/doctor/appointments",
     protect,
     doctorOnly,
     getDoctorAppointmentsForPrescription
