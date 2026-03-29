@@ -52,8 +52,14 @@ const appointmentSchema = new mongoose.Schema(
       type: String,
       default: "pending",
     },
+
   },
   { timestamps: true },
+
+  appointmentSchema.index(
+    { patient: 1, doctor: 1, appointmentDate: 1, slotTime: 1 },
+    { unique: true }
+  )
 );
 
 export default mongoose.model("Appointment", appointmentSchema);
