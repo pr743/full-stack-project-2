@@ -77,7 +77,7 @@ export const bookAppointment = async (req, res) => {
 
     const slot = await Slot.findOne({
       doctor: doctorId,
-      date: new Date(appointmentDate),
+      date: appointmentDate,
       time: slotTime,
 
     });
