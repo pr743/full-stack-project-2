@@ -32,87 +32,9 @@ export const getHospitalByCity = async (req, res) => {
   }
 };
 
-// export const addHospital = async (req, res) => {
-//   try {
-//     const { name, city, address } = req.body;
-
-
-//     if (!name || !city) {
-//       return res.status(400).json({
-//         success: false,
-//         message: "Name and city are required",
-//       })
-//     }
-
-
-//     if (!req.user || req.user.role !== "admin") {
-//       return res.status(403).json({
-//         success: false,
-//         message: "Admins only",
-//       });
-//     }
-
-
-//     let hospital = await Hospital.findOne({ admin: req.user._id });
 
 
 
-
-//     let slotDuration = 15;
-
-//     if (city.toLowerCase().includes("village")) {
-//       slotDuration = 20;
-
-//     }
-
-//     if (hospital) {
-//       hospital.name = name;
-//       hospital.city = city.trim().toLowerCase();
-//       hospital.address = address;
-
-//       await hospital.save();
-
-//       await User.findByIdAndUpdate(req.user._id, {
-//         hospitalId: hospital._id,
-//       });
-
-//       return res.status(200).json({
-//         success: true,
-//         message: "Hospital updated successfully",
-//         hospital,
-//       });
-//     }
-
-//     hospital = await Hospital.create({
-//       name,
-//       city: city.trim().toLowerCase(),
-//       address,
-//       admin: req.user._id,
-//       isActive: true,
-//     });
-
-
-
-//     await User.findByIdAndUpdate(req.user._id, {
-//       hospitalId: hospital._id,
-//     });
-
-
-
-//     res.status(201).json({
-//       success: true,
-//       message: "Hospital created successfully",
-//       hospital,
-//     });
-//   } catch (error) {
-//     console.error("ADD HOSPITAL ERROR:", error);
-//     res.status(500).json({
-//       success: false,
-//       message: "Failed to save hospital",
-//     });
-
-//   }
-// };
 
 
 export const addHospital = async (req, res) => {

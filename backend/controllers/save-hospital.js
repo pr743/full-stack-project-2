@@ -51,23 +51,40 @@ export const getSavedHospital = async (req, res) => {
 }
 
 
-
-
 export const removeSavedHospital = async (req, res) => {
   try {
     const patient = await Patient.findOne({ user: req.user._id });
 
+    if (!patient) {
+      return res.status(404).json({
+        success: false,
+        message: "Patient not found",
+      });
+    }
+
+
+    if (!patient.savedHospitals) {
+      patient.savedHospitals = [];
+    }
+
+    const hospitalId = req.params.id;
+
+
     patient.savedHospitals = patient.savedHospitals.filter(
-      (h) => h.toString() !== req.params.id
+      (h) => h.toString() !== hospitalId
     );
 
     await patient.save();
 
     res.json({
       success: true,
-      message: "Hospital removed",
+      message: "Hospital removed successfully",
     });
   } catch (error) {
-    res.status(500).json({ message: "Failed to remove" });
+    console.error("REMOVE ERROR:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while removing hospital",
+    });
   }
 };
