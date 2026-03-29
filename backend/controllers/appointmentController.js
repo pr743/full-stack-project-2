@@ -71,12 +71,6 @@ export const bookAppointment = async (req, res) => {
     const end = new Date(appointmentDate);
     end.setHours(23, 59, 59, 999);
 
-    const count = await Appointment.countDocuments({
-      doctor: doctorId,
-      appointmentDate: { $gte: start, $lte: end },
-      slotTime,
-    });
-
     if (count >= doctor.slotCapacity) {
       return res.status(400).json({
         success: false,
