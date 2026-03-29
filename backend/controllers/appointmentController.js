@@ -219,16 +219,38 @@ export const cancelAppointment = async (req, res) => {
   }
 };
 
+
 export const updateAppointmentStatus = async (req, res) => {
   try {
     const { status } = req.body;
 
-    if (!["booked", "completed", "cancelled"].includes(status)) {
+
+    if (!status) {
       return res.status(400).json({
         success: false,
-        message: "Invalid status",
+        message: "Status is required",
       });
     }
+
+
+    const allowedStatus = ["booked", "completed", "cancelled"];
+    if (!allowedStatus.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid status value",
+      });
+    }
+
+
+    const doctor = await Doctor.findOne({ user: req.user._id });
+
+    if (!doctor) {
+      return res.status(403).json({
+        success: false,
+        message: "Doctor not authorized",
+      });
+    }
+
 
     const appointment = await Appointment.findById(req.params.id);
 
@@ -239,19 +261,49 @@ export const updateAppointmentStatus = async (req, res) => {
       });
     }
 
+
+    if (appointment.doctor.toString() !== doctor._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "Not allowed to update this appointment",
+      });
+    }
+
+
+    if (appointment.status === status) {
+      return res.status(400).json({
+        success: false,
+        message: `Already ${status}`,
+      });
+    }
+
+
+    if (appointment.status === "completed") {
+      return res.status(400).json({
+        success: false,
+        message: "Already completed, cannot change",
+      });
+    }
+
+
     appointment.status = status;
     await appointment.save();
 
+
     res.status(200).json({
       success: true,
-      message: "Status updated successfully",
+      message: "Appointment status updated successfully",
+      data: appointment,
     });
+
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false });
+    console.error("UPDATE STATUS ERROR:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
   }
 };
-
 export const getPatientHistory = async (req, res) => {
   try {
     const { patientId } = req.params;
