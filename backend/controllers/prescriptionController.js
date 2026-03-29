@@ -40,15 +40,13 @@ export const createPrescription = async (req, res) => {
     }
 
 
-    if (appointment.status !== "completed") {
+    if (appointment.status !== "in-progress") {
       return res.status(400).json({
         success: false,
-        message: "Only completed appointments allowed",
+        message: "Only in-progress appointments allowed",
 
       });
     }
-
-
 
     const existing = await Prescription.findOne({ appointment: appointmentId });
     if (existing) {
