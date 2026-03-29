@@ -471,10 +471,10 @@ export const deleteAppointment = async (req, res) => {
     }
 
 
-    if (appointment.status === "cancelled" || appointment.status === "completed") {
+    if (appointment.status === "cancelled") {
       return res.status(400).json({
         success: false,
-        message: "Only cancelled or completed appointments can be deleted",
+        message: "Only cancelled appointments can be deleted",
       });
     }
 
