@@ -4,8 +4,6 @@ import Hospital from "../models/Hospital.js";
 import Patient from "../models/Patient.js";
 import mongoose from "mongoose";
 import { generateSlots } from "../utils/generateSlots.js";
-import slot from "../models/slot.js";
-
 
 export const bookAppointment = async (req, res) => {
   try {
@@ -100,20 +98,6 @@ export const bookAppointment = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "You already have an appointment at this time",
-      });
-    }
-
-    const slot = await slot.findOne({
-      doctor: doctorId,
-      date: appointmentDate,
-      time: slotTime,
-    });
-
-
-    if (!slot || slot.booked >= doctor.slotCapacity) {
-      return res.status(400).json({
-        success: false,
-        message: "Slot full, choose another time"
       });
     }
 
@@ -260,11 +244,6 @@ export const getAvailableSlots = async (req, res) => {
     const { doctorId, date } = req.query;
 
 
-    const slots = await slot.find({
-      doctor: doctorId,
-      date
-    });
-
 
     const doctor = await Doctor.findById(doctorId);
     if (!doctor) {
@@ -315,7 +294,6 @@ export const getAvailableSlots = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-
 
 
 export const cancelAppointment = async (req, res) => {
