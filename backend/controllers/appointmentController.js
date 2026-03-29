@@ -4,7 +4,6 @@ import Hospital from "../models/Hospital.js";
 import Patient from "../models/Patient.js";
 import mongoose from "mongoose";
 import { generateSlots } from "../utils/generateSlots.js";
-import Slot from "../models/slotModel.js";
 
 export const bookAppointment = async (req, res) => {
   try {
@@ -73,31 +72,6 @@ export const bookAppointment = async (req, res) => {
       slotTime,
       status: { $ne: ["cancelled"] },
     });
-
-
-    const slot = await Slot.findOne({
-      doctor: doctorId,
-      date: appointmentDate,
-      time: slotTime,
-
-    });
-
-
-    if (!slot) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid slot",
-      });
-    }
-
-    if (!slot.booked >= slot.capacity) {
-      return res.status(400).json({
-        success: false,
-        message: "Slot full, choose another time",
-      });
-    }
-
-
     if (existingAppointment) {
       return res.status(400).json({
         success: false,
@@ -497,10 +471,10 @@ export const deleteAppointment = async (req, res) => {
     }
 
 
-    if (appointment.status !== "cancelled") {
+    if (appointment.status !== "cancelled" || appointment.status === "completed") {
       return res.status(400).json({
         success: false,
-        message: "Only cancelled appointments can be deleted",
+        message: "Only cancelled  completed appointments can be deleted",
       });
     }
 
