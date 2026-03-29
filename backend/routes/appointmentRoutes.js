@@ -14,7 +14,8 @@ import {
   cancelAppointment,
   getPatientHistory,
   deleteAppointment,
-  rescheduleAppointment
+  rescheduleAppointment,
+  getAvailableSlots
 } from "../controllers/appointmentController.js";
 
 const router = express.Router();
