@@ -103,9 +103,6 @@ export const bookAppointment = async (req, res) => {
       });
     }
 
-
-
-
     const slot = await slot.findOne({
       doctor: doctorId,
       date: appointmentDate,
@@ -258,104 +255,69 @@ export const getAllAppointment = async (req, res) => {
 
 
 
-// export const getAvailableSlots = async (req, res) => {
-//   try {
-//     const { doctorId, date } = req.query;
-
-
-//     const   slots  =  await slot.find({
-//       doctor:doctorId,
-//       date
-//     });
-
-
-//     const doctor = await Doctor.findById(doctorId);
-//     if (!doctor) {
-//       return res.status(404).json({ message: "Doctor not found" });
-//     }
-
-
-
-
-//     const allSlots = generateSlots(
-//       doctor.workingHours.start,
-//       doctor.workingHours.end,
-//       doctor.slotDuration
-//     );
-
-
-//     const start = new Date(date);
-//     start.setHours(0, 0, 0, 0);
-
-//     const end = new Date(date);
-//     end.setHours(23, 59, 59, 999);
-
-//     const appointments = await Appointment.find({
-//       doctor: doctorId,
-//       appointmentDate: { $gte: start, $lte: end },
-//     });
-
-
-//     const slotMap = {};
-
-//     appointments.forEach((a) => {
-//       slotMap[a.slotTime] = (slotMap[a.slotTime] || 0) + 1;
-//     });
-
-//     const result = allSlots.map((slot) => {
-//       const booked = slotMap[slot] || 0;
-
-//       return {
-//         time: slot,
-//         booked,
-//         available: doctor.slotCapacity - booked,
-//         isFull: booked >= doctor.slotCapacity,
-//       };
-//     });
-
-//     res.json({ success: true, data: result });
-
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).json({ message: "Server error" });
-//   }
-// };
-
-
 export const getAvailableSlots = async (req, res) => {
   try {
     const { doctorId, date } = req.query;
 
-    if (!doctorId || !date) {
-      return res.status(400).json({
-        success: false,
-        message: "doctorId and date required",
-      });
+
+    const slots = await slot.find({
+      doctor: doctorId,
+      date
+    });
+
+
+    const doctor = await Doctor.findById(doctorId);
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor not found" });
     }
 
 
-    await createSlotsForDay(doctorId, date);
+    const allSlots = generateSlots(
+      doctor.workingHours.start,
+      doctor.workingHours.end,
+      doctor.slotDuration
+    );
 
-    const slots = await slot.find({ doctor: doctorId, date });
 
-    const result = slots.map((s) => ({
-      time: s.time,
-      availableSpots: s.capacity - s.booked,
-      isFull: s.booked >= s.capacity,
-    }));
+    const start = new Date(date);
+    start.setHours(0, 0, 0, 0);
 
-    return res.json({
-      success: true,
-      data: result,
+    const end = new Date(date);
+    end.setHours(23, 59, 59, 999);
+
+    const appointments = await Appointment.find({
+      doctor: doctorId,
+      appointmentDate: { $gte: start, $lte: end },
     });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to load slots",
+
+
+    const slotMap = {};
+
+    appointments.forEach((a) => {
+      slotMap[a.slotTime] = (slotMap[a.slotTime] || 0) + 1;
     });
+
+    const result = allSlots.map((slot) => {
+      const booked = slotMap[slot] || 0;
+
+      return {
+        time: slot,
+        booked,
+        available: doctor.slotCapacity - booked,
+        isFull: booked >= doctor.slotCapacity,
+      };
+    });
+
+    res.json({ success: true, data: result });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
   }
 };
+
+
+
 export const cancelAppointment = async (req, res) => {
   try {
     const appointment = await Appointment.findById(req.params.id);
