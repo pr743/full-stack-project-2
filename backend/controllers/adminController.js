@@ -157,15 +157,19 @@ export const getAllDoctors = async (req, res) => {
 export const getAllPatients = async (req, res) => {
 
   try {
+    console.log("Hospital ID for fetching patients:", req.hospitalId);
     if (!req.hospitalId) {
       return res.status(400).json({
         success: false,
         message: "Hospital not found",
       })
     }
+
     const patients = await Patient.find({ hospital: req.hospitalId })
       .populate("user", "name email isActive")
       .sort({ createdAt: -1 });
+
+    console.log("Patients fetched:", patients.length);
 
     res.status(200).json({
       success: true,
