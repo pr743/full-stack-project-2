@@ -1,3 +1,4 @@
+import Patient from "../models/Patient.js";
 import User from "../models/User.js";
 
 export const saveHospital = async (req, res) => {
@@ -28,23 +29,45 @@ export const saveHospital = async (req, res) => {
 
 
 
-export const getSavedHospital = async  (req,res) =>{
+export const getSavedHospital = async (req, res) => {
   try {
-  const user = await User.findById(req.user.id)
-    .populate("savedHospitals"); 
+    const user = await User.findById(req.user.id)
+      .populate("savedHospitals");
 
 
     res.status(200).json({
-      success:true,
+      success: true,
       data: user.savedHospitals,
     });
-    
+
   } catch (error) {
-     console.error("GET SAVED ERROR:", error);
+    console.error("GET SAVED ERROR:", error);
     res.status(500).json({
       success: false,
       message: "Server error",
     });
-    
+
   }
 }
+
+
+
+
+export const removeSavedHospital = async (req, res) => {
+  try {
+    const patient = await Patient.findOne({ user: req.user._id });
+
+    patient.savedHospitals = patient.savedHospitals.filter(
+      (h) => h.toString() !== req.params.id
+    );
+
+    await patient.save();
+
+    res.json({
+      success: true,
+      message: "Hospital removed",
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to remove" });
+  }
+};
