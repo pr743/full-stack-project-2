@@ -5,95 +5,6 @@ import Patient from "../models/Patient.js";
 import mongoose from "mongoose";
 import { generateSlots } from "../utils/generateSlots.js";
 
-// export const bookAppointment = async (req, res) => {
-//   try {
-//     if (req.user.role !== "patient") {
-//       return res.status(403).json({ success: false, message: "Patients only" });
-//     }
-
-//     const { hospitalId, doctorId, appointmentDate, reason, appointmentType } =
-//       req.body;
-
-//     if (!hospitalId || !doctorId || !appointmentDate || !appointmentType) {
-//       return res
-//         .status(400)
-//         .json({ success: false, message: "Missing required fields" });
-//     }
-
-//     const patient = await Patient.findOne({ user: req.user._id });
-//     if (!patient) {
-//       return res
-//         .status(400)
-//         .json({ success: false, message: "Patient not found" });
-//     }
-
-//     const doctor = await Doctor.findOne({
-//       _id: doctorId,
-//       hospital: hospitalId,
-//       isActive: true,
-//     });
-//     if (!doctor) {
-//       return res
-//         .status(400)
-//         .json({ success: false, message: "Doctor not available" });
-
-
-
-//     }
-
-
-
-
-//     const selectedDoctor = doctor[0];
-
-
-//     for (let doc of doctor) {
-//       if (doc.currentPatients < selectedDoctor.currentPatients) {
-//         selectedDoctor = doc;
-
-//       }
-//     }
-
-
-
-//     const selectedDate = new Date(appointmentDate);
-
-//     if (day === 0 && appointmentType === "normal") {
-//       return res.status(400).json({
-//         success: false,
-//         message: "Hospital closed on sunday",
-
-//       });
-//     }
-
-//     const appointment = await Appointment.create({
-//       patient: patient._id,
-//       doctor: doctor._id,
-//       hospital: hospitalId,
-//       appointmentDate: new Date(appointmentDate),
-//       slotTime,
-//       reason,
-//       appointmentType,
-//       status: "booked",
-//       doctorName: selectedDate._id,
-//     });
-
-//     doctor.currentPatients += 1;
-//     await doctor.save();
-
-//     return res.status(200).json({
-//       success: true,
-//       message: "Appointment booked successfully",
-//       data: appointment,
-//     });
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({ success: false, message: "Server error" });
-//   }
-// };
-
-
-
 export const bookAppointment = async (req, res) => {
   try {
     if (req.user.role !== "patient") {
@@ -174,6 +85,21 @@ export const bookAppointment = async (req, res) => {
     }
 
 
+
+    const existingAppointment = await Appointment.findOne({
+      patient: patient._id,
+      doctor: doctorId,
+      appointmentDate,
+      slotTime,
+      status: { $ne: ["cancelled"] },
+    });
+
+    if (existingAppointment) {
+      return res.status(400).json({
+        success: false,
+        message: "You already have an appointment at this time",
+      });
+    }
     const appointment = await Appointment.create({
       patient: patient._id,
       doctor: doctor._id,
@@ -186,6 +112,9 @@ export const bookAppointment = async (req, res) => {
       queueNumber: count + 1,
     });
 
+
+    slot.booked += 1;
+    await doctor.save();
 
     return res.status(200).json({
       success: true,
