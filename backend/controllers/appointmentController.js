@@ -3,94 +3,204 @@ import Doctor from "../models/Doctor.js";
 import Hospital from "../models/Hospital.js";
 import Patient from "../models/Patient.js";
 import mongoose from "mongoose";
+import { generateSlots } from "../utils/generateSlots.js";
+
+// export const bookAppointment = async (req, res) => {
+//   try {
+//     if (req.user.role !== "patient") {
+//       return res.status(403).json({ success: false, message: "Patients only" });
+//     }
+
+//     const { hospitalId, doctorId, appointmentDate, reason, appointmentType } =
+//       req.body;
+
+//     if (!hospitalId || !doctorId || !appointmentDate || !appointmentType) {
+//       return res
+//         .status(400)
+//         .json({ success: false, message: "Missing required fields" });
+//     }
+
+//     const patient = await Patient.findOne({ user: req.user._id });
+//     if (!patient) {
+//       return res
+//         .status(400)
+//         .json({ success: false, message: "Patient not found" });
+//     }
+
+//     const doctor = await Doctor.findOne({
+//       _id: doctorId,
+//       hospital: hospitalId,
+//       isActive: true,
+//     });
+//     if (!doctor) {
+//       return res
+//         .status(400)
+//         .json({ success: false, message: "Doctor not available" });
+
+
+
+//     }
+
+
+
+
+//     const selectedDoctor = doctor[0];
+
+
+//     for (let doc of doctor) {
+//       if (doc.currentPatients < selectedDoctor.currentPatients) {
+//         selectedDoctor = doc;
+
+//       }
+//     }
+
+
+
+//     const selectedDate = new Date(appointmentDate);
+
+//     if (day === 0 && appointmentType === "normal") {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Hospital closed on sunday",
+
+//       });
+//     }
+
+//     const appointment = await Appointment.create({
+//       patient: patient._id,
+//       doctor: doctor._id,
+//       hospital: hospitalId,
+//       appointmentDate: new Date(appointmentDate),
+//       slotTime,
+//       reason,
+//       appointmentType,
+//       status: "booked",
+//       doctorName: selectedDate._id,
+//     });
+
+//     doctor.currentPatients += 1;
+//     await doctor.save();
+
+//     return res.status(200).json({
+//       success: true,
+//       message: "Appointment booked successfully",
+//       data: appointment,
+//     });
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ success: false, message: "Server error" });
+//   }
+// };
+
+
 
 export const bookAppointment = async (req, res) => {
   try {
     if (req.user.role !== "patient") {
-      return res.status(403).json({ success: false, message: "Patients only" });
+      return res.status(403).json({
+        success: false,
+        message: "Patients only",
+      });
     }
 
-    const { hospitalId, doctorId, appointmentDate, reason, appointmentType } =
-      req.body;
+    const {
+      hospitalId,
+      doctorId,
+      appointmentDate,
+      reason,
+      appointmentType,
+      slotTime,
+    } = req.body;
 
-    if (!hospitalId || !doctorId || !appointmentDate || !appointmentType) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Missing required fields" });
+    if (!hospitalId || !doctorId || !appointmentDate || !appointmentType || !slotTime) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields",
+      });
     }
+
 
     const patient = await Patient.findOne({ user: req.user._id });
     if (!patient) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Patient not found" });
+      return res.status(400).json({
+        success: false,
+        message: "Patient not found",
+      });
     }
+
 
     const doctor = await Doctor.findOne({
       _id: doctorId,
       hospital: hospitalId,
       isActive: true,
     });
+
     if (!doctor) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Doctor not available" });
-
-
-
+      return res.status(400).json({
+        success: false,
+        message: "Doctor not available",
+      });
     }
-
-
-
-
-    const selectedDoctor = doctor[0];
-
-
-    for (let doc of doctor) {
-      if (doc.currentPatients < selectedDoctor.currentPatients) {
-        selectedDoctor = doc;
-
-      }
-    }
-
 
 
     const selectedDate = new Date(appointmentDate);
+    const day = selectedDate.getDay();
 
     if (day === 0 && appointmentType === "normal") {
       return res.status(400).json({
         success: false,
-        message: "Hospital closed on sunday",
-
+        message: "Hospital closed on Sunday",
       });
     }
+
+
+    const start = new Date(appointmentDate);
+    start.setHours(0, 0, 0, 0);
+
+    const end = new Date(appointmentDate);
+    end.setHours(23, 59, 59, 999);
+
+    const count = await Appointment.countDocuments({
+      doctor: doctorId,
+      appointmentDate: { $gte: start, $lte: end },
+      slotTime,
+    });
+
+    if (count >= doctor.slotCapacity) {
+      return res.status(400).json({
+        success: false,
+        message: "Slot full, choose another time ❌",
+      });
+    }
+
 
     const appointment = await Appointment.create({
       patient: patient._id,
       doctor: doctor._id,
       hospital: hospitalId,
-      appointmentDate: new Date(appointmentDate),
+      appointmentDate: selectedDate,
       slotTime,
       reason,
       appointmentType,
       status: "booked",
-      doctorName: selectedDate._id,
+      queueNumber: count + 1,
     });
 
-    doctor.currentPatients += 1;
-    await doctor.save();
 
     return res.status(200).json({
       success: true,
       message: "Appointment booked successfully",
       data: appointment,
     });
+
   } catch (error) {
     console.error(error);
-    res.status(500).json({ success: false, message: "Server error" });
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
   }
 };
-
 export const getDoctorAppointment = async (req, res) => {
   try {
     if (req.user.role !== "doctor") {
@@ -182,6 +292,62 @@ export const getAllAppointment = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false });
+  }
+};
+
+
+
+export const getAvailableSlots = async (req, res) => {
+  try {
+    const { doctorId, date } = req.query;
+
+    const doctor = await Doctor.findById(doctorId);
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor not found" });
+    }
+
+
+    const allSlots = generateSlots(
+      doctor.workingHours.start,
+      doctor.workingHours.end,
+      doctor.slotDuration
+    );
+
+
+    const start = new Date(date);
+    start.setHours(0, 0, 0, 0);
+
+    const end = new Date(date);
+    end.setHours(23, 59, 59, 999);
+
+    const appointments = await Appointment.find({
+      doctor: doctorId,
+      appointmentDate: { $gte: start, $lte: end },
+    });
+
+    // count per slot
+    const slotMap = {};
+
+    appointments.forEach((a) => {
+      slotMap[a.slotTime] = (slotMap[a.slotTime] || 0) + 1;
+    });
+
+    const result = allSlots.map((slot) => {
+      const booked = slotMap[slot] || 0;
+
+      return {
+        time: slot,
+        booked,
+        available: doctor.slotCapacity - booked,
+        isFull: booked >= doctor.slotCapacity,
+      };
+    });
+
+    res.json({ success: true, data: result });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
   }
 };
 

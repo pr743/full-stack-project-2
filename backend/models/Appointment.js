@@ -43,6 +43,15 @@ const appointmentSchema = new mongoose.Schema(
       enum: ["booked", "completed", "cancelled", "in-progress"],
       default: "booked",
     },
+
+    queueNumber: {
+      type: Number,
+    },
+
+    status: {
+      type: String,
+      default: "pending",
+    },
   },
   { timestamps: true },
 );

@@ -46,7 +46,7 @@ const doctorSchema = new Schema(
       required: true,
     },
 
-    
+
     isActive: {
       type: Boolean,
       default: true,
@@ -57,17 +57,37 @@ const doctorSchema = new Schema(
       ref: "User",
     },
 
+    workingHours: {
 
-
-
-    currentPatients:{
-      type:Number,
-      default:0,
+      start: {
+        type: String,
+        default: "10:00"
+      },
+      end: {
+        type: String,
+        default: "21:00"
+      },
     },
 
-    isOnline:{
-      type:Boolean,
-      default:true,
+
+
+    slotDuration: {
+      type: Number,
+      default: 15
+    },
+
+    slotCapacity: {
+      type: Number,
+      default: 4
+    },
+    currentPatients: {
+      type: Number,
+      default: 0,
+    },
+
+    isOnline: {
+      type: Boolean,
+      default: true,
     }
   },
   { timestamps: true }
