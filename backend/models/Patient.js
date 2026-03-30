@@ -23,6 +23,11 @@ const patientSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+
+    bloodGroup: {
+      type: String,
+      required: true,
+    }
   },
   { timestamps: true }
 );

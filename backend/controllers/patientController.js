@@ -6,15 +6,13 @@ import Hospital from "../models/Hospital.js";
 
 export const createPatientProfile = async (req, res) => {
   try {
-    const { age, gender, bloodGroup, hospital } = req.body;
+    const { age, gender, bloodGroup, hospital, } = req.body;
 
 
-    console.log(req.body);
-
-    if (!age || !gender || !hospital) {
+    if (!age || !gender || !hospital || !bloodGroup) {
       return res.status(400).json({
         success: false,
-        message: "Age ,gender, Hospital is required",
+        message: "Age ,gender, Hospital and Blood Group are required",
       });
     }
 
