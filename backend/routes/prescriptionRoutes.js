@@ -20,19 +20,10 @@ router.get(
 
 router.get("/:id/pdf", protect, downloadPrescriptionPDF);
 
-router.delete(
-    "/:id",
-    protect,
-    patientOnly,
-    deletePrescription
-);
-
 
 router.delete(
     "/:id",
     protect,
-    doctorOnly,
     deletePrescription
 );
-
 export default router;

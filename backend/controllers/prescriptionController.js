@@ -224,8 +224,30 @@ export const deletePrescription = async (req, res) => {
     if (!prescription) {
       return res.status(404).json({
         success: false,
-        message: "Prescription not found"
-      })
+        message: "Prescription not found",
+      });
+    }
+
+    if (req.user.role === "doctor") {
+      const doctor = await Doctor.findOne({ user: req.user._id });
+
+      if (!doctor || prescription.doctor.toString() !== doctor._id.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: "Not allowed",
+        });
+      }
+    }
+
+    if (req.user.role === "patient") {
+      const patient = await Patient.findOne({ user: req.user._id });
+
+      if (!patient || prescription.patient.toString() !== patient._id.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: "Not allowed",
+        });
+      }
     }
 
     await Prescription.findByIdAndDelete(id);
@@ -234,7 +256,9 @@ export const deletePrescription = async (req, res) => {
       success: true,
       message: "Deleted successfully",
     });
-  } catch {
+
+  } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Delete failed" });
   }
 };
