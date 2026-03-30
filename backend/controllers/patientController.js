@@ -41,6 +41,7 @@ export const createPatientProfile = async (req, res) => {
   }
 };
 
+
 export const getPatientProfile = async (req, res) => {
   try {
     const patient = await Patient.findOne({ user: req.user._id })

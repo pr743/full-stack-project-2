@@ -217,7 +217,18 @@ export const getPatientHistory = async (req, res) => {
 
 export const deletePrescription = async (req, res) => {
   try {
-    await Prescription.findByIdAndDelete(req.params.id);
+    const { id } = req.params;
+
+    const prescription = await Prescription.findById(id);
+
+    if (!prescription) {
+      return res.status(404).json({
+        success: false,
+        message: "Prescription not found"
+      })
+    }
+
+    await Prescription.findByIdAndDelete(id);
 
     res.json({
       success: true,
@@ -227,8 +238,6 @@ export const deletePrescription = async (req, res) => {
     res.status(500).json({ message: "Delete failed" });
   }
 };
-
-
 
 export const getDoctorAppointmentsForPrescription = async (req, res) => {
   try {
