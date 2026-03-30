@@ -27,4 +27,12 @@ router.delete(
     deletePrescription
 );
 
+
+router.delete(
+    "/:id",
+    protect,
+    doctorOnly,
+    deletePrescription
+);
+
 export default router;
