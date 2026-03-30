@@ -19,8 +19,6 @@ router.get(
 
 
 router.get("/:id/pdf", protect, downloadPrescriptionPDF);
-router.get("/share/:id", downloadPrescriptionPDF);
-
 router.delete(
     "/:id",
     protect,
