@@ -6,7 +6,17 @@ import Hospital from "../models/Hospital.js";
 
 export const createPatientProfile = async (req, res) => {
   try {
-    const { age, gender, bloodGroup, hospitalId } = req.body;
+    const { age, gender, bloodGroup, hospital } = req.body;
+
+
+    console.log(req.body);
+
+    if (!age || !gender || !hospital) {
+      return res.status(400).json({
+        success: false,
+        message: "Age ,gender, Hospital is required",
+      });
+    }
 
     const profileExists = await Patient.findOne({ user: req.user._id });
     if (profileExists) {
@@ -16,21 +26,13 @@ export const createPatientProfile = async (req, res) => {
       });
     }
 
-    if (!hospitalId) {
-      return res.status(400).json({
-        success: false,
-        message: "Hospital is required",
-      });
-    }
-
     const patient = await Patient.create({
       user: req.user._id,
       age,
       gender,
       bloodGroup,
-      hospital: hospitalId,
+      hospital,
     });
-
     res.status(201).json({
       success: true,
       message: "Patient profile created",
