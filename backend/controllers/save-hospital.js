@@ -50,10 +50,12 @@ export const getSavedHospital = async (req, res) => {
   }
 }
 
-
 export const removeSavedHospital = async (req, res) => {
   try {
-    const patient = await Patient.findOne({ user: req.user._id });
+    console.log("USER:", req.user);
+    console.log("PARAM ID:", req.params.id);
+
+    const patient = await Patient.findOne({ user: req.user?._id });
 
     if (!patient) {
       return res.status(404).json({
@@ -62,29 +64,36 @@ export const removeSavedHospital = async (req, res) => {
       });
     }
 
+    const hospitalId = req.params.id;
 
-    if (!patient.savedHospitals) {
+    if (!Array.isArray(patient.savedHospitals)) {
       patient.savedHospitals = [];
     }
 
-    const hospitalId = req.params.id;
 
+    const beforeCount = patient.savedHospitals.length;
 
     patient.savedHospitals = patient.savedHospitals.filter(
-      (h) => h.toString() !== hospitalId
+      (h) => h.toString() !== hospitalId.toString()
     );
+
+    const afterCount = patient.savedHospitals.length;
+
+    console.log("Before:", beforeCount, "After:", afterCount);
 
     await patient.save();
 
-    res.json({
+    return res.status(200).json({
       success: true,
       message: "Hospital removed successfully",
     });
+
   } catch (error) {
-    console.error("REMOVE ERROR:", error);
-    res.status(500).json({
+    console.error("REMOVE ERROR FULL:", error);
+
+    return res.status(500).json({
       success: false,
-      message: "Server error while removing hospital",
+      message: error.message || "Server error while removing hospital",
     });
   }
 };

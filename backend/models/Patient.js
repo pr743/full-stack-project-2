@@ -27,7 +27,18 @@ const patientSchema = new mongoose.Schema(
     bloodGroup: {
       type: String,
       required: true,
-    }
+    },
+
+
+    savedHospitals: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Hospital",
+      },
+    ],
+
+
+
   },
   { timestamps: true }
 );

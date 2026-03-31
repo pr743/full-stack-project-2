@@ -7,8 +7,6 @@ import Hospital from "../models/Hospital.js";
 export const createPatientProfile = async (req, res) => {
   try {
     const { age, gender, bloodGroup, hospital, } = req.body;
-
-
     if (!age || !gender || !hospital || !bloodGroup) {
       return res.status(400).json({
         success: false,
